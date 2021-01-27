@@ -8,6 +8,15 @@
 #include <vk_types.h>
 #include <vk_initializers.h>
 
+#include "VkBootstrap.h"
+
+#define VK_CHECK(x)\
+do { \
+		VkResult err = x; \
+		if(err) \
+		{ std::cout <<"Detected Vulkan error: " << err << std::endl; abort(); }\
+} while(0);
+
 void VulkanEngine::init()
 {
 	// We initialize SDL and create a window with it. 
@@ -28,7 +37,7 @@ void VulkanEngine::init()
 	_isInitialized = true;
 }
 void VulkanEngine::cleanup()
-{	
+{
 	if (_isInitialized) {
 		
 		SDL_DestroyWindow(_window);
