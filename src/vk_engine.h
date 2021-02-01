@@ -1,11 +1,9 @@
-﻿// vulkan_guide.h : Include file for standard system include files,
-// or project specific include files.
-
 #pragma once
 
 #include <vk_types.h>
 
-class VulkanEngine {
+class VulkanEngine
+{
 public:
 
 	bool _isInitialized{ false };
@@ -14,6 +12,12 @@ public:
 	VkExtent2D _windowExtent{ 1700 , 900 };
 
 	struct SDL_Window* _window{ nullptr };
+
+	VkInstance _instance;
+	VkDebugUtilsMessengerEXT _debug_messenger;
+	VkPhysicalDevice _physical_device;
+	VkDevice _logical_device;
+	VkSurfaceKHR _surface;
 
 	//initializes everything in the engine
 	void init();
@@ -26,4 +30,8 @@ public:
 
 	//run main loop
 	void run();
+
+private:
+
+	void init_vulkan();
 };

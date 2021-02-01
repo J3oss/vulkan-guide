@@ -1,0 +1,3 @@
+name: "Meson Build & Run"
+
+cmd: cd build && cmake .. && make && cd ../bin && ./vulkan_guide
