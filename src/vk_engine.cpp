@@ -45,7 +45,7 @@ void VulkanEngine::init_vulkan()
 	vkb::InstanceBuilder instace_builder;
 	auto instance_builder_result = instace_builder.set_app_name("vkguide")
 										 														.request_validation_layers(true)
-										 														.require_api_version(1, 0, 0)
+										 														.require_api_version(1, 1, 0)
 										 														.use_default_debug_messenger()
 										 														.build();
 	vkb::Instance vkb_instance = instance_builder_result.value();
@@ -58,7 +58,7 @@ void VulkanEngine::init_vulkan()
 
 	//physical device selection
 	vkb::PhysicalDeviceSelector physical_device_selector { vkb_instance };
-	auto physical_selector_result = physical_device_selector.set_minimum_version(1, 0)
+	auto physical_selector_result = physical_device_selector.set_minimum_version(1, 1)
 																													.set_surface(_surface)
 																													.select();
   if (!physical_selector_result)
@@ -96,7 +96,18 @@ void VulkanEngine::init_swapchain()
 
 void VulkanEngine::cleanup()
 {
-	if (_isInitialized) {
+	if (_isInitialized)
+	{
+		vkDestroySwapchainKHR(_logical_device, _swapchain, NULL);
+		for (size_t i = 0; i < _swapchain_image_views.size(); i++)
+		{
+			vkDestroyImageView(_logical_device, _swapchain_image_views[i], NULL);
+		}
+
+		vkDestroyDevice(_logical_device, NULL);
+		vkDestroySurfaceKHR(_instance, _surface, NULL);
+		vkb::destroy_debug_utils_messenger(_instance,_debug_messenger);
+		vkDestroyInstance(_instance, NULL);
 
 		SDL_DestroyWindow(_window);
 	}
