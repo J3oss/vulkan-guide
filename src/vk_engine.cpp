@@ -33,6 +33,7 @@ void VulkanEngine::init()
 	);
 
 	init_vulkan();
+	init_swapchain();
 
 	//everything went fine
 	_isInitialized = true;
@@ -76,6 +77,21 @@ void VulkanEngine::init_vulkan()
 	vkb::Device vbk_logical_device = logical_builder_result.value();
 
 	_logical_device = vbk_logical_device.device;
+}
+
+void VulkanEngine::init_swapchain()
+{
+	vkb::SwapchainBuilder swapchain_builder { _physical_device, _logical_device, _surface };
+	auto swapchain_builder_result = swapchain_builder.use_default_format_selection()
+																														 .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
+																														 .set_desired_extent(_windowExtent.width, _windowExtent.height)
+																														 .build();
+  vkb::Swapchain vkb_swapchain = swapchain_builder_result.value();
+
+	_swapchain = vkb_swapchain.swapchain;
+	_swapchain_images = vkb_swapchain.get_images().value();
+	_swapchain_image_views = vkb_swapchain.get_image_views().value();
+	_swapchain_image_format = vkb_swapchain.image_format;
 }
 
 void VulkanEngine::cleanup()
