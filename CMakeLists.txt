@@ -2,9 +2,9 @@
 # project specific logic here.
 #
 cmake_minimum_required (VERSION 3.8)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project ("vulkan_guide")
-
 
 find_package(Vulkan REQUIRED)
 
@@ -39,6 +39,6 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
 endforeach(GLSL)
 
 add_custom_target(
-    Shaders 
+    Shaders
     DEPENDS ${SPIRV_BINARY_FILES}
     )
