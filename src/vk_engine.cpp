@@ -34,6 +34,7 @@ void VulkanEngine::init()
 
 	init_vulkan();
 	init_swapchain();
+	init_commands();
 
 	//everything went fine
 	_isInitialized = true;
@@ -75,8 +76,13 @@ void VulkanEngine::init_vulkan()
 	vkb::DeviceBuilder logical_device_builder { vkb_physical_device };
 	auto logical_builder_result = logical_device_builder.build();
 	vkb::Device vbk_logical_device = logical_builder_result.value();
+	vkb::Device vkb_logical_device = logical_builder_result.value();
 
-	_logical_device = vbk_logical_device.device;
+	_logical_device = vkb_logical_device.device;
+
+	//get queues
+	_graphics_queue = vkb_logical_device.get_queue(vkb::QueueType::graphics).value();
+	_graphics_family_index = vkb_logical_device.get_queue_index(vkb::QueueType::graphics).value();
 }
 
 void VulkanEngine::init_swapchain()
@@ -92,6 +98,21 @@ void VulkanEngine::init_swapchain()
 	_swapchain_images = vkb_swapchain.get_images().value();
 	_swapchain_image_views = vkb_swapchain.get_image_views().value();
 	_swapchain_image_format = vkb_swapchain.image_format;
+}
+
+void VulkanEngine::init_commands()
+{
+	//command pool
+	VkCommandPoolCreateInfo _command_pool_info	= vkinit::command_pool_create_info(_graphics_family_index, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+	VK_CHECK(
+						vkCreateCommandPool(_logical_device, &_command_pool_info, NULL, &_command_pool);
+					);
+
+	//command buffer
+	VkCommandBufferAllocateInfo command_buffer_info = vkinit::command_buffer_allocate_info(_command_pool);
+  VK_CHECK(
+						vkAllocateCommandBuffers(_logical_device, &command_buffer_info, &_main_command_buffer);
+					);
 }
 
 void VulkanEngine::cleanup()

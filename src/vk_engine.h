@@ -25,6 +25,12 @@ public:
 	std::vector<VkImage> _swapchain_images;
 	std::vector<VkImageView> _swapchain_image_views;
 
+	VkQueue _graphics_queue;
+	uint32_t _graphics_family_index;
+
+	VkCommandPool _command_pool;
+	VkCommandBuffer _main_command_buffer;
+
 	//initializes everything in the engine
 	void init();
 
@@ -41,4 +47,5 @@ private:
 
 	void init_vulkan();
 	void init_swapchain();
+	void init_commands();
 };
