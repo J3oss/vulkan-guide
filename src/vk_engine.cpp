@@ -119,6 +119,8 @@ void VulkanEngine::cleanup()
 {
 	if (_isInitialized)
 	{
+		vkDestroyCommandPool(_logical_device, _command_pool, NULL);
+
 		vkDestroySwapchainKHR(_logical_device, _swapchain, NULL);
 		for (size_t i = 0; i < _swapchain_image_views.size(); i++)
 		{
