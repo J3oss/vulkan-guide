@@ -151,7 +151,25 @@ void VulkanEngine::init_renderpass()
 
 void VulkanEngine::init_framebuffers()
 {
+	VkFramebufferCreateInfo info = {
+																		.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+																		.renderPass = _render_pass,
+																		.attachmentCount = 1,
+																		.width  = _windowExtent.width,
+																		.height = _windowExtent.height,
+																		.layers = 1,
+																 };
 
+  uint32_t image_count = _swapchain_images.size();
+	_framebuffers = std::vector<VkFramebuffer> (image_count);
+
+	for (size_t i = 0; i < image_count; i++)
+	{
+		info.pAttachments = &_swapchain_image_views[i];
+		VK_CHECK(
+							vkCreateFramebuffer(_logical_device, &info, NULL, &_framebuffers[i]);
+						);
+	}
 }
 
 void VulkanEngine::cleanup()
