@@ -27,9 +27,11 @@ public:
 
 	VkQueue _graphics_queue;
 	uint32_t _graphics_family_index;
-
 	VkCommandPool _command_pool;
 	VkCommandBuffer _main_command_buffer;
+
+	VkRenderPass _render_pass;
+	std::vector<VkFramebuffer> _framebuffers;
 
 	//initializes everything in the engine
 	void init();
@@ -48,4 +50,6 @@ private:
 	void init_vulkan();
 	void init_swapchain();
 	void init_commands();
+	void init_renderpass();
+	void init_framebuffers();
 };
