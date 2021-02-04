@@ -9,9 +9,7 @@ public:
 
 	bool _isInitialized{ false };
 	int _frameNumber {0};
-
 	VkExtent2D _windowExtent{ 1700 , 900 };
-
 	struct SDL_Window* _window{ nullptr };
 
 	VkInstance _instance;
@@ -33,6 +31,10 @@ public:
 	VkRenderPass _render_pass;
 	std::vector<VkFramebuffer> _framebuffers;
 
+	VkSemaphore _present_semaphore;
+	VkSemaphore _render_semaphore;
+	VkFence _render_fence;
+
 	//initializes everything in the engine
 	void init();
 
@@ -52,4 +54,5 @@ private:
 	void init_commands();
 	void init_renderpass();
 	void init_framebuffers();
+	void init_sync_structures();
 };

@@ -37,6 +37,7 @@ void VulkanEngine::init()
 	init_commands();
 	init_renderpass();
 	init_framebuffers();
+	init_sync_structures();
 
 	//everything went fine
 	_isInitialized = true;
@@ -170,6 +171,25 @@ void VulkanEngine::init_framebuffers()
 							vkCreateFramebuffer(_logical_device, &info, NULL, &_framebuffers[i]);
 						);
 	}
+}
+
+void VulkanEngine::init_sync_structures()
+{
+	VkFenceCreateInfo fence_create_info = {
+																				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+																				.flags = VK_FENCE_CREATE_SIGNALED_BIT,
+																			};
+	VK_CHECK(
+						vkCreateFence(_logical_device, &fence_create_info, NULL, &_render_fence)
+					);
+
+	VkSemaphoreCreateInfo sema_create_info = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+	VK_CHECK(
+						vkCreateSemaphore(_logical_device, &sema_create_info, NULL, &_render_semaphore)
+					);
+	VK_CHECK(
+						vkCreateSemaphore(_logical_device, &sema_create_info, NULL, &_present_semaphore)
+					);
 }
 
 void VulkanEngine::cleanup()
