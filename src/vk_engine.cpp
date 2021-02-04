@@ -183,6 +183,7 @@ void VulkanEngine::cleanup()
 		vkDestroySwapchainKHR(_logical_device, _swapchain, NULL);
 		for (size_t i = 0; i < _swapchain_image_views.size(); i++)
 		{
+			vkDestroyFramebuffer(_logical_device, _framebuffers[i], NULL);
 			vkDestroyImageView(_logical_device, _swapchain_image_views[i], NULL);
 		}
 
