@@ -158,6 +158,8 @@ void VulkanEngine::cleanup()
 {
 	if (_isInitialized)
 	{
+		vkDestroyRenderPass(_logical_device, _render_pass, NULL);
+
 		vkDestroyCommandPool(_logical_device, _command_pool, NULL);
 
 		vkDestroySwapchainKHR(_logical_device, _swapchain, NULL);
