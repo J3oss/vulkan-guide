@@ -197,6 +197,12 @@ void VulkanEngine::cleanup()
 {
 	if (_isInitialized)
 	{
+		vkQueueWaitIdle(_graphics_queue);
+
+		vkDestroySemaphore(_logical_device, _present_semaphore, NULL);
+		vkDestroySemaphore(_logical_device, _render_semaphore, NULL);
+		vkDestroyFence(_logical_device, _render_fence, NULL);
+
 		vkDestroyRenderPass(_logical_device, _render_pass, NULL);
 
 		vkDestroyCommandPool(_logical_device, _command_pool, NULL);
