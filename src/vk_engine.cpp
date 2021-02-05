@@ -8,6 +8,7 @@
 #include <vk_initializers.h>
 
 #include "VkBootstrap.h"
+#include <math.h>
 
 #define VK_CHECK(x)\
 do { \
@@ -218,7 +219,78 @@ void VulkanEngine::cleanup()
 
 void VulkanEngine::draw()
 {
-	//nothing yet
+	VK_CHECK(
+						vkWaitForFences(_logical_device, 1, &_render_fence, true, 1000000000)
+					);
+	VK_CHECK(
+						vkResetFences(_logical_device, 1, &_render_fence)
+					);
+
+	uint32_t frame_index = 0;
+	VK_CHECK(
+						vkAcquireNextImageKHR(_logical_device, _swapchain, 1000000000, _present_semaphore, NULL, &frame_index)
+					);
+
+  VK_CHECK(
+						vkResetCommandBuffer(_main_command_buffer, 0)
+					);
+	VkCommandBufferBeginInfo command_buffer_begin_info = {
+																													.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+																													.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+																													.pInheritanceInfo = NULL,
+																												};
+	VK_CHECK(vkBeginCommandBuffer(_main_command_buffer, &command_buffer_begin_info));
+
+	VkClearValue clearValue = { };
+	float flash = abs(sin(_frameNumber / 120.f));
+	clearValue.color = {
+												{ 0.0f, 0.0f, flash, 1.0f }
+										 };
+
+	VkRenderPassBeginInfo _render_pass_begin_info = {};
+	_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	_render_pass_begin_info.renderPass = _render_pass;
+	_render_pass_begin_info.renderArea.offset.x = 0;
+	_render_pass_begin_info.renderArea.offset.y = 0;
+	_render_pass_begin_info.renderArea.extent = _windowExtent;
+	_render_pass_begin_info.framebuffer = _framebuffers[frame_index];
+	_render_pass_begin_info.clearValueCount = 1;
+	_render_pass_begin_info.pClearValues = &clearValue;
+	vkCmdBeginRenderPass(_main_command_buffer, &_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+	//do stuff
+
+	vkCmdEndRenderPass(_main_command_buffer);
+	VK_CHECK(vkEndCommandBuffer(_main_command_buffer));
+
+	VkSubmitInfo submit = {};
+	submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	submit.pWaitDstStageMask = &waitStage;
+	submit.waitSemaphoreCount = 1;
+	submit.pWaitSemaphores = &_present_semaphore;
+	submit.signalSemaphoreCount = 1;
+	submit.pSignalSemaphores = &_render_semaphore;
+	submit.commandBufferCount = 1;
+	submit.pCommandBuffers = &_main_command_buffer;
+
+	VK_CHECK(
+		vkQueueSubmit(_graphics_queue, 1, &submit, _render_fence)
+	);
+
+	VkPresentInfoKHR present_info = {};
+	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	present_info.pSwapchains = &_swapchain;
+	present_info.swapchainCount = 1;
+	present_info.pWaitSemaphores = &_render_semaphore;
+	present_info.waitSemaphoreCount = 1;
+	present_info.pImageIndices = &frame_index;
+
+	VK_CHECK(
+		vkQueuePresentKHR(_graphics_queue, &present_info)
+	);
+
+	_frameNumber++;
 }
 
 void VulkanEngine::run()
