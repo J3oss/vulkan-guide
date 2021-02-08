@@ -10,12 +10,8 @@
 #include "VkBootstrap.h"
 #include <math.h>
 
-#define VK_CHECK(x)\
-do { \
-		VkResult err = x; \
-		if(err) \
-		{ std::cout <<"Detected Vulkan error: " << err << std::endl; abort(); }\
-} while(0);
+#include "vk_pipeline.h"
+#include "fstream"
 
 void VulkanEngine::init()
 {
@@ -39,6 +35,8 @@ void VulkanEngine::init()
 	init_renderpass();
 	init_framebuffers();
 	init_sync_structures();
+
+	init_pipeline();
 
 	//everything went fine
 	_isInitialized = true;
@@ -193,6 +191,96 @@ void VulkanEngine::init_sync_structures()
 					);
 }
 
+void VulkanEngine::init_pipeline()
+{
+	VkShaderModule frag_shader;
+	if (!load_shader_module("../shaders/triangle.frag.spv", &frag_shader))
+	std::cout << "error loading fragment shader" << std::endl;
+
+	VkShaderModule vert_shader;
+	if (!load_shader_module("../shaders/triangle.vert.spv", &vert_shader))
+	std::cout << "error loading vertex shader" << std::endl;
+
+	VkPipelineLayoutCreateInfo pipeline_layout_info = vkinit::pipeline_layout_create_info();
+	VK_CHECK(vkCreatePipelineLayout(_logical_device, &pipeline_layout_info, nullptr, &_triangle_pipeline_layout));
+
+	PipelineBuilder pipelineBuilder;
+
+	pipelineBuilder.shaderStages.push_back(
+		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, vert_shader));
+	pipelineBuilder.shaderStages.push_back(
+			vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, frag_shader));
+
+	pipelineBuilder.vertexInputState = vkinit::vertex_input_state_create_info();
+
+	pipelineBuilder.inputAssemblyState = vkinit::input_assembly_create_info(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+	pipelineBuilder.viewport.x = 0.0f;
+	pipelineBuilder.viewport.y = 0.0f;
+	pipelineBuilder.viewport.width = (float)_windowExtent.width;
+	pipelineBuilder.viewport.height = (float)_windowExtent.height;
+	pipelineBuilder.viewport.minDepth = 0.0f;
+	pipelineBuilder.viewport.maxDepth = 1.0f;
+
+	pipelineBuilder.scissor.offset = { 0, 0 };
+	pipelineBuilder.scissor.extent = _windowExtent;
+
+	pipelineBuilder.rasterizerState = vkinit::rasterization_state_create_info(VK_POLYGON_MODE_FILL);
+
+	pipelineBuilder.multisampleState = vkinit::multisampling_state_create_info();
+
+	pipelineBuilder.colorBlendAttachmentState = vkinit::color_blend_attachment_state();
+
+	pipelineBuilder.pipelineLayout = _triangle_pipeline_layout;
+
+	_triangle_pipeline = pipelineBuilder.build_pipeline(_logical_device, _render_pass);
+}
+
+bool VulkanEngine::load_shader_module(const char* filePath, VkShaderModule* outShaderModule)
+{
+	//open the file. With cursor at the end
+	std::ifstream file(filePath, std::ios::ate | std::ios::binary);
+
+	if (!file.is_open()) {
+		return false;
+	}
+
+	//find what the size of the file is by looking up the location of the cursor
+	//because the cursor is at the end, it gives the size directly in bytes
+	size_t fileSize = (size_t)file.tellg();
+
+	//spirv expects the buffer to be on uint32, so make sure to reserve an int vector big enough for the entire file
+	std::vector<uint32_t> buffer(fileSize / sizeof(uint32_t));
+
+	//put file cursor at beggining
+	file.seekg(0);
+
+	//load the entire file into the buffer
+	file.read((char*)buffer.data(), fileSize);
+
+	//now that the file is loaded into the buffer, we can close it
+	file.close();
+
+	//create a new shader module, using the buffer we loaded
+	VkShaderModuleCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.pNext = nullptr;
+
+	//codeSize has to be in bytes, so multply the ints in the buffer by size of int to know the real size of the buffer
+	createInfo.codeSize = buffer.size() * sizeof(uint32_t);
+	createInfo.pCode = buffer.data();
+
+	//check that the creation goes well.
+	VkShaderModule shaderModule;
+	if (vkCreateShaderModule(_logical_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+	{
+		return false;
+	}
+
+	*outShaderModule = shaderModule;
+	return true;
+}
+
 void VulkanEngine::cleanup()
 {
 	if (_isInitialized)
@@ -265,7 +353,15 @@ void VulkanEngine::draw()
 	vkCmdBeginRenderPass(_main_command_buffer, &_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	//do stuff
+	//do stuff
+	//do stuff
+	vkCmdBindPipeline(_main_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _triangle_pipeline);
+	vkCmdDraw(_main_command_buffer, 3, 1, 0, 0);
+	//do stuff
+	//do stuff
+	//do stuff
 
+	//finalize the render pass
 	vkCmdEndRenderPass(_main_command_buffer);
 	VK_CHECK(vkEndCommandBuffer(_main_command_buffer));
 

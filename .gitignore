@@ -2,3 +2,4 @@
 /bin
 /.ccls-cache
 compile_commands.json
+/shaders/*.spv

@@ -35,6 +35,9 @@ public:
 	VkSemaphore _render_semaphore;
 	VkFence _render_fence;
 
+	VkPipelineLayout _triangle_pipeline_layout;
+	VkPipeline _triangle_pipeline;
+
 	//initializes everything in the engine
 	void init();
 
@@ -55,4 +58,7 @@ private:
 	void init_renderpass();
 	void init_framebuffers();
 	void init_sync_structures();
+
+	void init_pipeline();
+	bool load_shader_module(const char* filePath, VkShaderModule* outShaderModule);
 };
