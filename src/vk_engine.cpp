@@ -287,6 +287,9 @@ void VulkanEngine::cleanup()
 	{
 		vkQueueWaitIdle(_graphics_queue);
 
+		vkDestroyPipelineLayout(_logical_device, _triangle_pipeline_layout, NULL);
+		vkDestroyPipeline(_logical_device, _triangle_pipeline, NULL);
+
 		vkDestroySemaphore(_logical_device, _present_semaphore, NULL);
 		vkDestroySemaphore(_logical_device, _render_semaphore, NULL);
 		vkDestroyFence(_logical_device, _render_fence, NULL);
