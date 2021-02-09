@@ -36,7 +36,8 @@ public:
 	VkFence _render_fence;
 
 	VkPipelineLayout _triangle_pipeline_layout;
-	VkPipeline _triangle_pipeline;
+	VkPipeline _redtriangle_pipeline;
+	VkPipeline _coloredtriangle_pipeline;
 
 	//initializes everything in the engine
 	void init();
