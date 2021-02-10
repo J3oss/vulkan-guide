@@ -1,7 +1,7 @@
 #include "vk_pipeline.h"
 #include "iostream"
 
-VkPipeline PipelineBuilder::build_pipeline(VkDevice device, VkRenderPass pass)
+VkPipeline PipelineBuilder::build_pipeline(VkDevice device, VkRenderPass pass,	DeletionQueue* deletor)
 {
 	VkPipelineViewportStateCreateInfo viewportState = {};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -41,6 +41,11 @@ VkPipeline PipelineBuilder::build_pipeline(VkDevice device, VkRenderPass pass)
 
 	VkPipeline newPipeline;
 	VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline));
+
+	deletor->push([=]()
+	{
+		vkDestroyPipeline(device, newPipeline, NULL);
+	});
 
 	return newPipeline;
 }

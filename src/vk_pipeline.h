@@ -16,10 +16,10 @@ public:
   VkPipelineRasterizationStateCreateInfo rasterizerState;
   VkPipelineColorBlendAttachmentState colorBlendAttachmentState;
   VkPipelineMultisampleStateCreateInfo multisampleState;
-  
+
   VkPipelineLayout pipelineLayout;
 
-  VkPipeline build_pipeline(VkDevice device, VkRenderPass renderPass);
+  VkPipeline build_pipeline(VkDevice device, VkRenderPass pass,	DeletionQueue* deletor);
 
 private:
 

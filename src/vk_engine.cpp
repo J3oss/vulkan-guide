@@ -102,6 +102,15 @@ void VulkanEngine::init_swapchain()
 	_swapchain_images = vkb_swapchain.get_images().value();
 	_swapchain_image_views = vkb_swapchain.get_image_views().value();
 	_swapchain_image_format = vkb_swapchain.image_format;
+
+	_mainDeletionQueue.push([=]() {
+		vkDestroySwapchainKHR(_logical_device, _swapchain, NULL);
+		for (size_t i = 0; i < _swapchain_image_views.size(); i++)
+		{
+			vkDestroyFramebuffer(_logical_device, _framebuffers[i], NULL);
+			vkDestroyImageView(_logical_device, _swapchain_image_views[i], NULL);
+		}
+	});
 }
 
 void VulkanEngine::init_commands()
@@ -111,6 +120,9 @@ void VulkanEngine::init_commands()
 	VK_CHECK(
 						vkCreateCommandPool(_logical_device, &_command_pool_info, NULL, &_command_pool);
 					);
+	_mainDeletionQueue.push([=]() {
+		vkDestroyCommandPool(_logical_device, _command_pool, NULL);
+	});
 
 	//command buffer
 	VkCommandBufferAllocateInfo command_buffer_info = vkinit::command_buffer_allocate_info(_command_pool);
@@ -149,6 +161,10 @@ void VulkanEngine::init_renderpass()
 																	.pSubpasses = &subpass,
 																};
   VK_CHECK(vkCreateRenderPass(_logical_device, &info, NULL, &_render_pass));
+
+	_mainDeletionQueue.push([=]() {
+			vkDestroyRenderPass(_logical_device, _render_pass, NULL);
+	});
 }
 
 void VulkanEngine::init_framebuffers()
@@ -183,6 +199,9 @@ void VulkanEngine::init_sync_structures()
 	VK_CHECK(
 						vkCreateFence(_logical_device, &fence_create_info, NULL, &_render_fence)
 					);
+	_mainDeletionQueue.push([=]() {
+		vkDestroyFence(_logical_device, _render_fence, NULL);
+	});
 
 	VkSemaphoreCreateInfo sema_create_info = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	VK_CHECK(
@@ -191,6 +210,10 @@ void VulkanEngine::init_sync_structures()
 	VK_CHECK(
 						vkCreateSemaphore(_logical_device, &sema_create_info, NULL, &_present_semaphore)
 					);
+	_mainDeletionQueue.push([=]() {
+		vkDestroySemaphore(_logical_device, _present_semaphore, NULL);
+		vkDestroySemaphore(_logical_device, _render_semaphore, NULL);
+	});
 }
 
 void VulkanEngine::init_pipeline()
@@ -213,6 +236,10 @@ void VulkanEngine::init_pipeline()
 
 	VkPipelineLayoutCreateInfo pipeline_layout_info = vkinit::pipeline_layout_create_info();
 	VK_CHECK(vkCreatePipelineLayout(_logical_device, &pipeline_layout_info, nullptr, &_triangle_pipeline_layout));
+	_mainDeletionQueue.push([=]()
+	{
+		vkDestroyPipelineLayout(_logical_device, _triangle_pipeline_layout, NULL);
+	});
 
 	PipelineBuilder pipelineBuilder;
 	pipelineBuilder.vertexInputState = vkinit::vertex_input_state_create_info();
@@ -237,7 +264,7 @@ void VulkanEngine::init_pipeline()
 		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, red_vert_shader));
 	pipelineBuilder.shaderStages.push_back(
 			vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, red_frag_shader));
-	_redtriangle_pipeline = pipelineBuilder.build_pipeline(_logical_device, _render_pass);
+	_redtriangle_pipeline = pipelineBuilder.build_pipeline(_logical_device, _render_pass, &_mainDeletionQueue);
 
 	pipelineBuilder.shaderStages.clear();
 
@@ -247,7 +274,7 @@ void VulkanEngine::init_pipeline()
 	pipelineBuilder.shaderStages.push_back(
 		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, colored_frag_shader)
 	);
-	_coloredtriangle_pipeline = pipelineBuilder.build_pipeline(_logical_device, _render_pass);
+	_coloredtriangle_pipeline = pipelineBuilder.build_pipeline(_logical_device, _render_pass, &_mainDeletionQueue);
 }
 
 bool VulkanEngine::load_shader_module(const char* filePath, VkShaderModule* outShaderModule)
@@ -292,6 +319,12 @@ bool VulkanEngine::load_shader_module(const char* filePath, VkShaderModule* outS
 	}
 
 	*outShaderModule = shaderModule;
+
+	_mainDeletionQueue.push([=]()
+	{
+		vkDestroyShaderModule(_logical_device, shaderModule, NULL);
+	});
+
 	return true;
 }
 
@@ -301,24 +334,7 @@ void VulkanEngine::cleanup()
 	{
 		vkQueueWaitIdle(_graphics_queue);
 
-		vkDestroyPipelineLayout(_logical_device, _triangle_pipeline_layout, NULL);
-		vkDestroyPipeline(_logical_device, _redtriangle_pipeline, NULL);
-		vkDestroyPipeline(_logical_device, _coloredtriangle_pipeline, NULL);
-
-		vkDestroySemaphore(_logical_device, _present_semaphore, NULL);
-		vkDestroySemaphore(_logical_device, _render_semaphore, NULL);
-		vkDestroyFence(_logical_device, _render_fence, NULL);
-
-		vkDestroyRenderPass(_logical_device, _render_pass, NULL);
-
-		vkDestroyCommandPool(_logical_device, _command_pool, NULL);
-
-		vkDestroySwapchainKHR(_logical_device, _swapchain, NULL);
-		for (size_t i = 0; i < _swapchain_image_views.size(); i++)
-		{
-			vkDestroyFramebuffer(_logical_device, _framebuffers[i], NULL);
-			vkDestroyImageView(_logical_device, _swapchain_image_views[i], NULL);
-		}
+		_mainDeletionQueue.flush();
 
 		vkDestroyDevice(_logical_device, NULL);
 		vkDestroySurfaceKHR(_instance, _surface, NULL);

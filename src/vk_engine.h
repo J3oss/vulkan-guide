@@ -1,7 +1,27 @@
 #pragma once
 
 #include <vk_types.h>
+#include <functional>
 #include <vector>
+#include <deque>
+
+struct DeletionQueue
+{
+	std::deque< std::function<void()> > deletors;
+
+	void push(std::function<void()>&& func)
+	{
+		deletors.push_front(func);
+	}
+
+	void flush()
+	{
+		for (auto it = deletors.rbegin(); it != deletors.rend(); it++)
+			(*it)();
+
+			deletors.clear();
+	}
+};
 
 class VulkanEngine
 {
@@ -11,6 +31,8 @@ public:
 	int _frameNumber {0};
 	VkExtent2D _windowExtent{ 1700 , 900 };
 	struct SDL_Window* _window{ nullptr };
+
+	DeletionQueue _mainDeletionQueue;
 
 	VkInstance _instance;
 	VkDebugUtilsMessengerEXT _debug_messenger;
