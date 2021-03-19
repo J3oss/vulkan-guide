@@ -13,6 +13,8 @@
 #include "vk_pipeline.h"
 #include "fstream"
 
+#include <vk_vma.h>
+
 bool isColored = false;
 
 void VulkanEngine::init()
@@ -87,6 +89,20 @@ void VulkanEngine::init_vulkan()
 	//get queues
 	_graphics_queue = vkb_logical_device.get_queue(vkb::QueueType::graphics).value();
 	_graphics_family_index = vkb_logical_device.get_queue_index(vkb::QueueType::graphics).value();
+
+	VmaAllocatorCreateInfo allocatorInfo = {};
+  allocatorInfo.physicalDevice = _physical_device;
+  allocatorInfo.device = _logical_device;
+  allocatorInfo.instance = _instance;
+  vmaCreateAllocator(&allocatorInfo, &_allocator);
+
+	_mainDeletionQueue.push([=]() {
+		vmaDestroyAllocator(_allocator);
+		vkDestroyDevice(_logical_device, NULL);
+		vkDestroySurfaceKHR(_instance, _surface, NULL);
+		vkb::destroy_debug_utils_messenger(_instance,_debug_messenger);
+		vkDestroyInstance(_instance, NULL);
+	});
 }
 
 void VulkanEngine::init_swapchain()

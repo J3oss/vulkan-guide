@@ -5,6 +5,8 @@
 #include <vector>
 #include <deque>
 
+#include <vk_mem_alloc.h>
+
 struct DeletionQueue
 {
 	std::deque< std::function<void()> > deletors;
@@ -60,6 +62,8 @@ public:
 	VkPipelineLayout _triangle_pipeline_layout;
 	VkPipeline _redtriangle_pipeline;
 	VkPipeline _coloredtriangle_pipeline;
+
+	VmaAllocator _allocator;
 
 	//initializes everything in the engine
 	void init();
