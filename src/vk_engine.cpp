@@ -133,33 +133,28 @@ void VulkanEngine::init_commands()
 
 void VulkanEngine::init_renderpass()
 {
-	VkAttachmentDescription color_attachment = {	.format = _swapchain_image_format,
-																								.samples = VK_SAMPLE_COUNT_1_BIT,
-																								.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-																								.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-																								.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-																								.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-																								.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-																								.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-																						 };
-  VkAttachmentReference color_attachment_ref = {
-																									.attachment = 0,
-																									.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-																								};
+	std::vector<VkAttachmentDescription> attachments;
+	attachments.push_back(vkinit::attachment_description_create(_swapchain_image_format));
 
-	VkSubpassDescription subpass = {
-																 		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-																		.colorAttachmentCount = 1,
-																		.pColorAttachments = &color_attachment_ref,
-																 };
+	std::vector<VkAttachmentReference> attachment_refs;
+	attachment_refs.push_back(
+		{
+		.attachment = 0,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		}
+	);
 
-  VkRenderPassCreateInfo info = {
-																	.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-																	.attachmentCount = 1,
-																	.pAttachments = &color_attachment,
-																	.subpassCount = 1,
-																	.pSubpasses = &subpass,
-																};
+	std::vector<VkSubpassDescription> subpasses;
+	subpasses.push_back(
+		{
+			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+			.colorAttachmentCount = (uint32_t)attachment_refs.size(),
+			.pColorAttachments = attachment_refs.data(),
+		}
+	);
+
+  VkRenderPassCreateInfo info = vkinit::render_pass_create_info(attachments.data(), subpasses.data());
+
   VK_CHECK(vkCreateRenderPass(_logical_device, &info, NULL, &_render_pass));
 
 	_mainDeletionQueue.push([=]() {
@@ -335,11 +330,6 @@ void VulkanEngine::cleanup()
 		vkQueueWaitIdle(_graphics_queue);
 
 		_mainDeletionQueue.flush();
-
-		vkDestroyDevice(_logical_device, NULL);
-		vkDestroySurfaceKHR(_instance, _surface, NULL);
-		vkb::destroy_debug_utils_messenger(_instance,_debug_messenger);
-		vkDestroyInstance(_instance, NULL);
 
 		SDL_DestroyWindow(_window);
 	}

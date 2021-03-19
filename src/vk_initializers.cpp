@@ -23,6 +23,34 @@ VkCommandBufferAllocateInfo vkinit::command_buffer_allocate_info(VkCommandPool p
 	return info;
 }
 
+VkAttachmentDescription vkinit::attachment_description_create(VkFormat imageFormat)
+{
+	VkAttachmentDescription attachment = {	.format =  imageFormat,
+																					.samples = VK_SAMPLE_COUNT_1_BIT,
+																					.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+																					.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+																					.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+																					.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+																					.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+																					.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+																			};
+
+  return attachment;
+}
+
+VkRenderPassCreateInfo vkinit::render_pass_create_info(VkAttachmentDescription *attachments, VkSubpassDescription *subpasses)
+{
+	VkRenderPassCreateInfo info = {
+																	.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+																	.attachmentCount = 1,
+																	.pAttachments = attachments,
+																	.subpassCount = 1,
+																	.pSubpasses = subpasses,
+																};
+
+	return info;
+}
+
 VkPipelineShaderStageCreateInfo vkinit::pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shaderModule)
 {
 	VkPipelineShaderStageCreateInfo info = {};

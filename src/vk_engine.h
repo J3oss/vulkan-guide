@@ -11,7 +11,7 @@ struct DeletionQueue
 
 	void push(std::function<void()>&& func)
 	{
-		deletors.push_front(func);
+		deletors.push_back(func);
 	}
 
 	void flush()

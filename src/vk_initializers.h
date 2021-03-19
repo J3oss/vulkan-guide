@@ -8,6 +8,10 @@ namespace vkinit
 
 	VkCommandBufferAllocateInfo command_buffer_allocate_info(VkCommandPool pool, uint32_t count = 1, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
+	VkAttachmentDescription attachment_description_create(VkFormat imageFormat);
+
+	VkRenderPassCreateInfo render_pass_create_info(VkAttachmentDescription *attachments, VkSubpassDescription *subpasses);
+
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shaderModule);
 
 	VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info();
