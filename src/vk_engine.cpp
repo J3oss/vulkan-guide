@@ -252,7 +252,7 @@ void VulkanEngine::init_pipeline()
 	if (!load_shader_module("../shaders/tri_mesh.vert.spv", &mesh_vert_shader))
 	std::cout << "error loading mesh vertex shader" << std::endl;
 
-	//triangle pipeline
+	//triangle pipeline layout
 	VkPipelineLayoutCreateInfo triangle_pipeline_layout_info = vkinit::pipeline_layout_create_info();
 	VK_CHECK(vkCreatePipelineLayout(_logical_device, &triangle_pipeline_layout_info, nullptr, &_triangle_pipeline_layout));
 	_mainDeletionQueue.push([=]()
@@ -260,7 +260,7 @@ void VulkanEngine::init_pipeline()
 		vkDestroyPipelineLayout(_logical_device, _triangle_pipeline_layout, NULL);
 	});
 
-	//mesh pipeline
+	//mesh pipeline layout
 	VkPushConstantRange pc;
 	{
 		pc.offset = 0;
@@ -454,10 +454,10 @@ void VulkanEngine::draw()
 	vkCmdPushConstants(_main_command_buffer, _mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
 	VkDeviceSize offset = 0;
-	vkCmdBindVertexBuffers(_main_command_buffer, 0, 1, &_triangle_mesh.verticesBuffer.vkbuffer, &offset);
 	vkCmdBindPipeline(_main_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _mesh_pipeline);
 
-	vkCmdDraw(_main_command_buffer, _triangle_mesh.vertices.size(), 1, 0, 0);
+	vkCmdBindVertexBuffers(_main_command_buffer, 0, 1, &_monkey_mesh.verticesBuffer.vkbuffer, &offset);
+	vkCmdDraw(_main_command_buffer, _monkey_mesh.vertices.size(), 1, 0, 0);
 	//do stuff
 	//do stuff
 	//do stuff
@@ -537,6 +537,9 @@ void VulkanEngine::load_meshes()
 	_triangle_mesh.vertices[2].color = { 0.f, 1.f, 0.0f };
 
 	upload_mesh(_triangle_mesh);
+
+	_monkey_mesh.load_from_obj("../assets/monkey_smooth.obj");
+	upload_mesh(_monkey_mesh);
 }
 
 void VulkanEngine::upload_mesh(Mesh& mesh)

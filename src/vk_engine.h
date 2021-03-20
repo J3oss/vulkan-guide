@@ -76,6 +76,8 @@ public:
 	VmaAllocator _allocator;
 
 	Mesh _triangle_mesh;
+	Mesh _monkey_mesh;
+
 	//initializes everything in the engine
 	void init();
 
