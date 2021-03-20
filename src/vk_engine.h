@@ -1,10 +1,10 @@
 #pragma once
 
+#include <deque>
+#include <vector>
+#include <vk_mesh.h>
 #include <vk_types.h>
 #include <functional>
-#include <vector>
-#include <deque>
-
 #include <vk_mem_alloc.h>
 
 struct DeletionQueue
@@ -62,9 +62,11 @@ public:
 	VkPipelineLayout _triangle_pipeline_layout;
 	VkPipeline _redtriangle_pipeline;
 	VkPipeline _coloredtriangle_pipeline;
+	VkPipeline _mesh_pipeline;
 
 	VmaAllocator _allocator;
 
+	Mesh _triangle_mesh;
 	//initializes everything in the engine
 	void init();
 
@@ -88,4 +90,7 @@ private:
 
 	void init_pipeline();
 	bool load_shader_module(const char* filePath, VkShaderModule* outShaderModule);
+
+	void load_meshes();
+	void upload_mesh(Mesh& mesh);
 };
