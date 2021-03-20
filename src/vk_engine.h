@@ -7,6 +7,13 @@
 #include <functional>
 #include <vk_mem_alloc.h>
 
+#include <glm/glm.hpp>
+
+struct MeshPushConstants {
+	glm::vec4 data;
+	glm::mat4 matrix;
+};
+
 struct DeletionQueue
 {
 	std::deque< std::function<void()> > deletors;
@@ -60,6 +67,8 @@ public:
 	VkFence _render_fence;
 
 	VkPipelineLayout _triangle_pipeline_layout;
+	VkPipelineLayout _mesh_pipeline_layout;
+
 	VkPipeline _redtriangle_pipeline;
 	VkPipeline _coloredtriangle_pipeline;
 	VkPipeline _mesh_pipeline;

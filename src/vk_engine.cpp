@@ -15,6 +15,8 @@
 
 #include <vk_vma.h>
 
+#include <glm/gtx/transform.hpp>
+
 bool isColored = false;
 
 void VulkanEngine::init()
@@ -250,11 +252,29 @@ void VulkanEngine::init_pipeline()
 	if (!load_shader_module("../shaders/tri_mesh.vert.spv", &mesh_vert_shader))
 	std::cout << "error loading mesh vertex shader" << std::endl;
 
-	VkPipelineLayoutCreateInfo pipeline_layout_info = vkinit::pipeline_layout_create_info();
-	VK_CHECK(vkCreatePipelineLayout(_logical_device, &pipeline_layout_info, nullptr, &_triangle_pipeline_layout));
+	//triangle pipeline
+	VkPipelineLayoutCreateInfo triangle_pipeline_layout_info = vkinit::pipeline_layout_create_info();
+	VK_CHECK(vkCreatePipelineLayout(_logical_device, &triangle_pipeline_layout_info, nullptr, &_triangle_pipeline_layout));
 	_mainDeletionQueue.push([=]()
 	{
 		vkDestroyPipelineLayout(_logical_device, _triangle_pipeline_layout, NULL);
+	});
+
+	//mesh pipeline
+	VkPushConstantRange pc;
+	{
+		pc.offset = 0;
+		pc.size = sizeof(MeshPushConstants);
+		pc.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	}
+
+	VkPipelineLayoutCreateInfo mesh_pipeline_layout_info = vkinit::pipeline_layout_create_info();
+	mesh_pipeline_layout_info.pushConstantRangeCount = 1;
+	mesh_pipeline_layout_info.pPushConstantRanges = &pc;
+	VK_CHECK(vkCreatePipelineLayout(_logical_device, &mesh_pipeline_layout_info, nullptr, &_mesh_pipeline_layout));
+	_mainDeletionQueue.push([=]()
+	{
+		vkDestroyPipelineLayout(_logical_device, _mesh_pipeline_layout, NULL);
 	});
 
 	PipelineBuilder pipelineBuilder;
@@ -301,6 +321,8 @@ void VulkanEngine::init_pipeline()
 	pipelineBuilder.vertexInputState.pVertexBindingDescriptions = vertexDescription.bindings.data();
 	pipelineBuilder.vertexInputState.vertexAttributeDescriptionCount = vertexDescription.attributes.size();
 	pipelineBuilder.vertexInputState.pVertexAttributeDescriptions = vertexDescription.attributes.data();
+
+	pipelineBuilder.pipelineLayout = _mesh_pipeline_layout;
 
 	pipelineBuilder.shaderStages.clear();
 	pipelineBuilder.shaderStages.push_back(
@@ -419,6 +441,18 @@ void VulkanEngine::draw()
 	//do stuff
 	//do stuff
 	//do stuff
+	glm::vec3 camera_pos = {0.0f,0.0f,-2.0f};
+	glm::mat4 view = glm::translate(glm::mat4(1.f), camera_pos);
+	glm::mat4 projection = glm::perspective(glm::radians(70.f), 1700.f / 900.f, 0.1f, 200.0f);
+	projection[1][1] *= -1;
+
+	glm::mat4 model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(_frameNumber * 0.4f), glm::vec3(0, 1, 0));
+	glm::mat4 mesh_matrix = projection * view * model;
+
+	MeshPushConstants constants;
+	constants.matrix = mesh_matrix;
+	vkCmdPushConstants(_main_command_buffer, _mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+
 	VkDeviceSize offset = 0;
 	vkCmdBindVertexBuffers(_main_command_buffer, 0, 1, &_triangle_mesh.verticesBuffer.vkbuffer, &offset);
 	vkCmdBindPipeline(_main_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _mesh_pipeline);
