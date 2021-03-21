@@ -561,20 +561,7 @@ void VulkanEngine::load_meshes()
 
 void VulkanEngine::upload_mesh(Mesh& mesh)
 {
-	VkBufferCreateInfo bufferInfo = {};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size  = mesh.vertices.size() * sizeof(Vertex);
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-	VmaAllocationCreateInfo allocationInfo = {};
-	allocationInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-	VK_CHECK(
-		vmaCreateBuffer(_allocator, &bufferInfo, &allocationInfo,
-			&mesh.verticesBuffer.vkbuffer,
-			&mesh.verticesBuffer.allocation,
-			nullptr)
-		);
+	mesh.verticesBuffer = create_buffer(mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	_mainDeletionQueue.push([=]() {
         vmaDestroyBuffer(_allocator, mesh.verticesBuffer.vkbuffer, mesh.verticesBuffer.allocation);
@@ -684,4 +671,23 @@ void VulkanEngine::init_scene()
 FrameData& VulkanEngine::get_current_frame()
 {
 	return _frames[_frameNumber % FRAME_OVERLAP];
+}
+
+Buffer VulkanEngine::create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)
+{
+	VkBufferCreateInfo create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	create_info.size = allocSize;
+	create_info.usage = usage;
+
+	VmaAllocationCreateInfo vma_create_info = {};
+	vma_create_info.usage = memoryUsage;
+
+	Buffer buffer;
+
+	VK_CHECK(
+		vmaCreateBuffer(_allocator, &create_info, &vma_create_info, &buffer.vkbuffer, &buffer.allocation, nullptr);
+	);
+
+	return buffer;
 }

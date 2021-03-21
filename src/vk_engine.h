@@ -129,4 +129,6 @@ private:
 	void upload_mesh(Mesh& mesh);
 
 	void init_scene();
+
+	Buffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
