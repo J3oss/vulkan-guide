@@ -14,3 +14,8 @@ struct Buffer {
 	VkBuffer vkbuffer;
 	VmaAllocation allocation;
 };
+
+struct Image {
+	VkImage vkimage;
+	VmaAllocation allocation;
+};

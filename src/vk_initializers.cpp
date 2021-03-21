@@ -1,5 +1,6 @@
 ﻿#include <vk_initializers.h>
 
+
 VkCommandPoolCreateInfo vkinit::command_pool_create_info(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags /*= 0*/)
 {
 	VkCommandPoolCreateInfo info = {};
@@ -38,15 +39,15 @@ VkAttachmentDescription vkinit::attachment_description_create(VkFormat imageForm
   return attachment;
 }
 
-VkRenderPassCreateInfo vkinit::render_pass_create_info(VkAttachmentDescription *attachments, VkSubpassDescription *subpasses)
+VkRenderPassCreateInfo vkinit::render_pass_create_info(std::vector<VkAttachmentDescription> &attachments, std::vector<VkSubpassDescription> &subpasses)
 {
-	VkRenderPassCreateInfo info = {
-																	.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-																	.attachmentCount = 1,
-																	.pAttachments = attachments,
-																	.subpassCount = 1,
-																	.pSubpasses = subpasses,
-																};
+	VkRenderPassCreateInfo info = {};
+
+	info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	info.attachmentCount = static_cast<uint32_t>(attachments.size());
+	info.pAttachments = attachments.data();
+	info.subpassCount = static_cast<uint32_t>(subpasses.size());
+	info.pSubpasses = subpasses.data();
 
 	return info;
 }
@@ -158,4 +159,54 @@ VkPipelineLayoutCreateInfo vkinit::pipeline_layout_create_info()
 	info.pPushConstantRanges = nullptr;
 
 	return info;
+}
+
+VkImageCreateInfo vkinit::image_create_info(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent)
+{
+	VkImageCreateInfo info = {};
+
+	info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	info.imageType = VK_IMAGE_TYPE_2D;
+	info.format = format;
+	info.extent = extent;
+	info.usage = usageFlags;
+
+	info.mipLevels = 1;
+	info.arrayLayers = 1;
+	info.samples = VK_SAMPLE_COUNT_1_BIT;
+	info.tiling = VK_IMAGE_TILING_OPTIMAL;
+
+	return info;
+}
+
+VkImageViewCreateInfo vkinit::imageview_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags)
+{
+	VkImageViewCreateInfo info = {};
+
+	info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	info.image = image;
+	info.format = format;
+	info.subresourceRange.aspectMask = aspectFlags;
+
+	info.subresourceRange.baseMipLevel = 0;
+	info.subresourceRange.levelCount = 1;
+	info.subresourceRange.baseArrayLayer = 0;
+	info.subresourceRange.layerCount = 1;
+
+	return info;
+}
+
+VkPipelineDepthStencilStateCreateInfo vkinit::depth_stencil_create_info(bool bDepthTest, bool bDepthWrite, VkCompareOp compareOp)
+{
+    VkPipelineDepthStencilStateCreateInfo info = {};
+
+    info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    info.depthTestEnable = bDepthTest ? VK_TRUE : VK_FALSE;
+    info.depthWriteEnable = bDepthWrite ? VK_TRUE : VK_FALSE;
+    info.depthCompareOp = bDepthTest ? compareOp : VK_COMPARE_OP_ALWAYS;
+    info.depthBoundsTestEnable = VK_FALSE;
+    info.stencilTestEnable = VK_FALSE;
+
+    return info;
 }

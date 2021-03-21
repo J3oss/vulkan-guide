@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <vector>
 #include <vk_types.h>
 
 namespace vkinit
@@ -10,7 +11,7 @@ namespace vkinit
 
 	VkAttachmentDescription attachment_description_create(VkFormat imageFormat);
 
-	VkRenderPassCreateInfo render_pass_create_info(VkAttachmentDescription *attachments, VkSubpassDescription *subpasses);
+	VkRenderPassCreateInfo render_pass_create_info(std::vector<VkAttachmentDescription> &attachments, std::vector<VkSubpassDescription> &subpasses);
 
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shaderModule);
 
@@ -25,4 +26,10 @@ namespace vkinit
 	VkPipelineColorBlendAttachmentState color_blend_attachment_state();
 
 	VkPipelineLayoutCreateInfo pipeline_layout_create_info();
+
+	VkImageCreateInfo image_create_info(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
+
+	VkImageViewCreateInfo imageview_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
+
+	VkPipelineDepthStencilStateCreateInfo depth_stencil_create_info(bool bDepthTest, bool bDepthWrite, VkCompareOp compareOp);
 }

@@ -39,6 +39,8 @@ VkPipeline PipelineBuilder::build_pipeline(VkDevice device, VkRenderPass pass,	D
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
+	pipelineInfo.pDepthStencilState = &depthStencil;
+	
 	VkPipeline newPipeline;
 	VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline));
 

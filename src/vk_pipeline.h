@@ -16,6 +16,7 @@ public:
   VkPipelineRasterizationStateCreateInfo rasterizerState;
   VkPipelineColorBlendAttachmentState colorBlendAttachmentState;
   VkPipelineMultisampleStateCreateInfo multisampleState;
+  VkPipelineDepthStencilStateCreateInfo depthStencil;
 
   VkPipelineLayout pipelineLayout;
 

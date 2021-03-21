@@ -54,6 +54,10 @@ public:
 	std::vector<VkImage> _swapchain_images;
 	std::vector<VkImageView> _swapchain_image_views;
 
+	Image _depth_image;
+	VkImageView _depth_image_view;
+	VkFormat _depth_format;
+
 	VkQueue _graphics_queue;
 	uint32_t _graphics_family_index;
 	VkCommandPool _command_pool;
