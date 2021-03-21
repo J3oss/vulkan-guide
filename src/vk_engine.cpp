@@ -162,20 +162,25 @@ void VulkanEngine::init_swapchain()
 
 void VulkanEngine::init_commands()
 {
-	//command pool
+	//command pools one for each frame
 	VkCommandPoolCreateInfo _command_pool_info	= vkinit::command_pool_create_info(_graphics_family_index, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-	VK_CHECK(
-						vkCreateCommandPool(_logical_device, &_command_pool_info, NULL, &_command_pool);
-					);
-	_mainDeletionQueue.push([=]() {
-		vkDestroyCommandPool(_logical_device, _command_pool, NULL);
-	});
+	for (size_t i = 0; i < FRAME_OVERLAP; i++)
+	{
+		//command pool
+		VK_CHECK(
+			vkCreateCommandPool(_logical_device, &_command_pool_info, NULL, &_frames[i]._commandPool);
+		);
 
-	//command buffer
-	VkCommandBufferAllocateInfo command_buffer_info = vkinit::command_buffer_allocate_info(_command_pool);
-  VK_CHECK(
-						vkAllocateCommandBuffers(_logical_device, &command_buffer_info, &_main_command_buffer);
-					);
+		//command buffer
+		VkCommandBufferAllocateInfo command_buffer_info = vkinit::command_buffer_allocate_info(_frames[i]._commandPool);
+		VK_CHECK(
+			vkAllocateCommandBuffers(_logical_device, &command_buffer_info, &_frames[i]._mainCommandBuffer);
+		);
+
+		_mainDeletionQueue.push([=]() {
+			vkDestroyCommandPool(_logical_device, _frames[i]._commandPool, NULL);
+		});
+	}
 }
 
 void VulkanEngine::init_renderpass()
@@ -254,28 +259,30 @@ void VulkanEngine::init_framebuffers()
 
 void VulkanEngine::init_sync_structures()
 {
-	VkFenceCreateInfo fence_create_info = {
-																				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-																				.flags = VK_FENCE_CREATE_SIGNALED_BIT,
-																			};
-	VK_CHECK(
-						vkCreateFence(_logical_device, &fence_create_info, NULL, &_render_fence)
-					);
-	_mainDeletionQueue.push([=]() {
-		vkDestroyFence(_logical_device, _render_fence, NULL);
-	});
+	for (size_t i = 0; i < FRAME_OVERLAP; i++)
+	{
+		VkFenceCreateInfo fence_create_info = {
+			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			.flags = VK_FENCE_CREATE_SIGNALED_BIT,
+		};
+		VK_CHECK(
+			vkCreateFence(_logical_device, &fence_create_info, NULL, &_frames[i]._render_fence)
+		);
 
-	VkSemaphoreCreateInfo sema_create_info = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-	VK_CHECK(
-						vkCreateSemaphore(_logical_device, &sema_create_info, NULL, &_render_semaphore)
-					);
-	VK_CHECK(
-						vkCreateSemaphore(_logical_device, &sema_create_info, NULL, &_present_semaphore)
-					);
-	_mainDeletionQueue.push([=]() {
-		vkDestroySemaphore(_logical_device, _present_semaphore, NULL);
-		vkDestroySemaphore(_logical_device, _render_semaphore, NULL);
-	});
+		VkSemaphoreCreateInfo sema_create_info = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VK_CHECK(
+			vkCreateSemaphore(_logical_device, &sema_create_info, NULL, &_frames[i]._render_semaphore)
+		);
+		VK_CHECK(
+			vkCreateSemaphore(_logical_device, &sema_create_info, NULL, &_frames[i]._present_semaphore)
+		);
+
+		_mainDeletionQueue.push([=]() {
+			vkDestroyFence(_logical_device, _frames[i]._render_fence, NULL);
+			vkDestroySemaphore(_logical_device, _frames[i]._present_semaphore, NULL);
+			vkDestroySemaphore(_logical_device, _frames[i]._render_semaphore, NULL);
+		});
+	}
 }
 
 void VulkanEngine::init_pipeline()
@@ -417,26 +424,26 @@ void VulkanEngine::cleanup()
 void VulkanEngine::draw()
 {
 	VK_CHECK(
-						vkWaitForFences(_logical_device, 1, &_render_fence, true, 1000000000)
+						vkWaitForFences(_logical_device, 1, &get_current_frame(). _render_fence, true, 1000000000)
 					);
 	VK_CHECK(
-						vkResetFences(_logical_device, 1, &_render_fence)
+						vkResetFences(_logical_device, 1, &get_current_frame()._render_fence)
 					);
 
 	uint32_t frame_index = 0;
 	VK_CHECK(
-						vkAcquireNextImageKHR(_logical_device, _swapchain, 1000000000, _present_semaphore, NULL, &frame_index)
+						vkAcquireNextImageKHR(_logical_device, _swapchain, 1000000000, get_current_frame()._present_semaphore, NULL, &frame_index)
 					);
 
   VK_CHECK(
-						vkResetCommandBuffer(_main_command_buffer, 0)
+						vkResetCommandBuffer(get_current_frame()._mainCommandBuffer, 0)
 					);
 	VkCommandBufferBeginInfo command_buffer_begin_info = {
 																													.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 																													.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
 																													.pInheritanceInfo = NULL,
 																												};
-	VK_CHECK(vkBeginCommandBuffer(_main_command_buffer, &command_buffer_begin_info));
+	VK_CHECK(vkBeginCommandBuffer(get_current_frame()._mainCommandBuffer, &command_buffer_begin_info));
 
 	VkClearValue clearValue = { };
 	float flash = abs(sin(_frameNumber / 120.f));
@@ -458,40 +465,40 @@ void VulkanEngine::draw()
 	VkClearValue clearValues[] = { clearValue, depthClear };
 	_render_pass_begin_info.clearValueCount = 2;
 	_render_pass_begin_info.pClearValues = &clearValues[0];
-	vkCmdBeginRenderPass(_main_command_buffer, &_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(get_current_frame()._mainCommandBuffer, &_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	//do stuff
 	//do stuff
 	//do stuff
-	draw_objects(_main_command_buffer, _renderables.data(), _renderables.size());
+	draw_objects(get_current_frame()._mainCommandBuffer, _renderables.data(), _renderables.size());
 	//do stuff
 	//do stuff
 	//do stuff
 
 	//finalize the render pass
-	vkCmdEndRenderPass(_main_command_buffer);
-	VK_CHECK(vkEndCommandBuffer(_main_command_buffer));
+	vkCmdEndRenderPass(get_current_frame()._mainCommandBuffer);
+	VK_CHECK(vkEndCommandBuffer(get_current_frame()._mainCommandBuffer));
 
 	VkSubmitInfo submit = {};
 	submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	submit.pWaitDstStageMask = &waitStage;
 	submit.waitSemaphoreCount = 1;
-	submit.pWaitSemaphores = &_present_semaphore;
+	submit.pWaitSemaphores = &get_current_frame()._present_semaphore;
 	submit.signalSemaphoreCount = 1;
-	submit.pSignalSemaphores = &_render_semaphore;
+	submit.pSignalSemaphores = &get_current_frame()._render_semaphore;
 	submit.commandBufferCount = 1;
-	submit.pCommandBuffers = &_main_command_buffer;
+	submit.pCommandBuffers = &get_current_frame()._mainCommandBuffer;
 
 	VK_CHECK(
-		vkQueueSubmit(_graphics_queue, 1, &submit, _render_fence)
+		vkQueueSubmit(_graphics_queue, 1, &submit, get_current_frame()._render_fence)
 	);
 
 	VkPresentInfoKHR present_info = {};
 	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	present_info.pSwapchains = &_swapchain;
 	present_info.swapchainCount = 1;
-	present_info.pWaitSemaphores = &_render_semaphore;
+	present_info.pWaitSemaphores = &get_current_frame()._render_semaphore;
 	present_info.waitSemaphoreCount = 1;
 	present_info.pImageIndices = &frame_index;
 
@@ -672,4 +679,9 @@ void VulkanEngine::init_scene()
 			_renderables.push_back(triangle);
 		}
 	}
+}
+
+FrameData& VulkanEngine::get_current_frame()
+{
+	return _frames[_frameNumber % FRAME_OVERLAP];
 }

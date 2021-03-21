@@ -26,6 +26,14 @@ struct RenderObject {
 	glm::mat4 transform;
 };
 
+struct FrameData {
+	VkSemaphore _present_semaphore, _render_semaphore;
+	VkFence _render_fence;
+
+	VkCommandPool _commandPool;
+	VkCommandBuffer _mainCommandBuffer;
+};
+
 struct DeletionQueue {
 	std::deque< std::function<void()> > deletors;
 
@@ -42,6 +50,8 @@ struct DeletionQueue {
 			deletors.clear();
 	}
 };
+
+constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine
 {
@@ -60,6 +70,9 @@ public:
 	VkDevice _logical_device;
 	VkSurfaceKHR _surface;
 
+	FrameData _frames[FRAME_OVERLAP];
+	FrameData& get_current_frame();
+
 	VkSwapchainKHR _swapchain;
 	VkFormat _swapchain_image_format;
 	std::vector<VkImage> _swapchain_images;
@@ -71,15 +84,9 @@ public:
 
 	VkQueue _graphics_queue;
 	uint32_t _graphics_family_index;
-	VkCommandPool _command_pool;
-	VkCommandBuffer _main_command_buffer;
 
 	VkRenderPass _render_pass;
 	std::vector<VkFramebuffer> _framebuffers;
-
-	VkSemaphore _present_semaphore;
-	VkSemaphore _render_semaphore;
-	VkFence _render_fence;
 
 	VmaAllocator _allocator;
 
