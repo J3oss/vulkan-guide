@@ -44,6 +44,14 @@ struct FrameData {
 	VkDescriptorSet globalDescriptor;
 };
 
+struct GPUSceneData {
+	glm::vec4 fogColor;
+	glm::vec4 fogDistances;
+	glm::vec4 ambientColor;
+	glm::vec4 sunlightDirection;
+	glm::vec4 sunlightColor;
+};
+
 struct DeletionQueue {
 	std::deque< std::function<void()> > deletors;
 
@@ -79,6 +87,7 @@ public:
 	VkPhysicalDevice _physical_device;
 	VkDevice _logical_device;
 	VkSurfaceKHR _surface;
+	VkPhysicalDeviceProperties _gpuProperties;
 
 	FrameData _frames[FRAME_OVERLAP];
 	FrameData& get_current_frame();
@@ -107,6 +116,9 @@ public:
 
 	std::unordered_map <std::string,Material> _materials;
 	std::unordered_map <std::string,Mesh> _meshes;
+
+	GPUSceneData _sceneParameters;
+	Buffer _sceneParameterBuffer;
 
 	//initializes everything in the engine
 	void init();
@@ -146,4 +158,6 @@ private:
 	void draw_objects(VkCommandBuffer cmd,RenderObject* first, int count);
 
 	Buffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+
+	size_t pad_uniform_buffer_size(size_t originalSize);
 };
