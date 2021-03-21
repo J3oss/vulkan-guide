@@ -81,22 +81,12 @@ public:
 	VkSemaphore _render_semaphore;
 	VkFence _render_fence;
 
-	VkPipelineLayout _triangle_pipeline_layout;
-	VkPipelineLayout _mesh_pipeline_layout;
-
-	VkPipeline _redtriangle_pipeline;
-	VkPipeline _coloredtriangle_pipeline;
-	VkPipeline _mesh_pipeline;
-
 	VmaAllocator _allocator;
 
 	std::vector<RenderObject> _renderables;
 
 	std::unordered_map <std::string,Material> _materials;
 	std::unordered_map <std::string,Mesh> _meshes;
-
-	Mesh _triangle_mesh;
-	Mesh _monkey_mesh;
 
 	//initializes everything in the engine
 	void init();
