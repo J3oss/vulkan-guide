@@ -26,12 +26,22 @@ struct RenderObject {
 	glm::mat4 transform;
 };
 
+struct GPUCameraData {
+	glm::mat4 view;
+	glm::mat4 projection;
+	glm::mat4 viewproj;
+};
+
 struct FrameData {
 	VkSemaphore _present_semaphore, _render_semaphore;
 	VkFence _render_fence;
 
 	VkCommandPool _commandPool;
 	VkCommandBuffer _mainCommandBuffer;
+
+	Buffer cameraBuffer;
+
+	VkDescriptorSet globalDescriptor;
 };
 
 struct DeletionQueue {
@@ -90,6 +100,9 @@ public:
 
 	VmaAllocator _allocator;
 
+	VkDescriptorSetLayout _globalSetLayout;
+	VkDescriptorPool _descriptorPool;
+
 	std::vector<RenderObject> _renderables;
 
 	std::unordered_map <std::string,Material> _materials;
@@ -107,17 +120,12 @@ public:
 	//run main loop
 	void run();
 
-	Material* create_material(VkPipeline pipeline, VkPipelineLayout layout,const std::string& name);
-	Material* get_material(const std::string& name);
-
-	Mesh* get_mesh(const std::string& name);
-
-	void draw_objects(VkCommandBuffer cmd,RenderObject* first, int count);
 private:
 
 	void init_vulkan();
 	void init_swapchain();
 	void init_commands();
+	void init_descriptors();
 	void init_renderpass();
 	void init_framebuffers();
 	void init_sync_structures();
@@ -129,6 +137,13 @@ private:
 	void upload_mesh(Mesh& mesh);
 
 	void init_scene();
+
+	Material* create_material(VkPipeline pipeline, VkPipelineLayout layout,const std::string& name);
+	Material* get_material(const std::string& name);
+
+	Mesh* get_mesh(const std::string& name);
+
+	void draw_objects(VkCommandBuffer cmd,RenderObject* first, int count);
 
 	Buffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
