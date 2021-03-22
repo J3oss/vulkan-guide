@@ -17,6 +17,8 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include "vk_textures.h"
+
 bool isColored = false;
 
 void VulkanEngine::init()
@@ -45,6 +47,7 @@ void VulkanEngine::init()
 	init_pipeline();
 
 	load_meshes();
+	load_images();
 
 	init_scene();
 
@@ -925,4 +928,16 @@ void VulkanEngine::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& f
 
     //clear the command pool. This will free the command buffer too
 	vkResetCommandPool(_logical_device, _uploadContext.commandPool, 0);
+}
+
+void VulkanEngine::load_images()
+{
+	Texture lostEmpire;
+
+	vkutil::load_image_from_file(*this, "../assets/lost_empire-RGBA.png", lostEmpire.image);
+
+	VkImageViewCreateInfo imageinfo = vkinit::imageview_create_info(VK_FORMAT_R8G8B8A8_SRGB, lostEmpire.image.vkimage, VK_IMAGE_ASPECT_COLOR_BIT);
+	vkCreateImageView(_logical_device, &imageinfo, nullptr, &lostEmpire.imageView);
+
+	_loadedTextures["empire_diffuse"] = lostEmpire;
 }

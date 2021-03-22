@@ -19,6 +19,11 @@ struct Material {
 	VkPipelineLayout pipelineLayout;
 };
 
+struct Texture {
+	Image image;
+	VkImageView imageView;
+};
+
 struct RenderObject {
 	Mesh* mesh;
 	Material* material;
@@ -142,6 +147,11 @@ public:
 
 	void run();
 
+	Buffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+	
+	std::unordered_map<std::string, Texture> _loadedTextures;
+
 private:
 
 	void init_vulkan();
@@ -167,9 +177,7 @@ private:
 
 	void draw_objects(VkCommandBuffer cmd,RenderObject* first, int count);
 
-	Buffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
-
 	size_t pad_uniform_buffer_size(size_t originalSize);
 
-	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+	void load_images();
 };
