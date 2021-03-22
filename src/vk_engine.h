@@ -5,10 +5,10 @@
 #include <vk_mesh.h>
 #include <vk_types.h>
 #include <functional>
+#include <glm/glm.hpp>
 #include <unordered_map>
 #include <vk_mem_alloc.h>
 
-#include <glm/glm.hpp>
 
 struct MeshPushConstants {
 	glm::vec4 data;
@@ -26,22 +26,28 @@ struct RenderObject {
 	glm::mat4 transform;
 };
 
-struct GPUCameraData {
-	glm::mat4 view;
-	glm::mat4 projection;
-	glm::mat4 viewproj;
-};
-
 struct FrameData {
-	VkSemaphore _present_semaphore, _render_semaphore;
 	VkFence _render_fence;
+	VkSemaphore _present_semaphore, _render_semaphore;
 
 	VkCommandPool _commandPool;
 	VkCommandBuffer _mainCommandBuffer;
 
-	Buffer cameraBuffer;
+	VkDescriptorSet globalDescriptorSet;
+	VkDescriptorSet objectDescriptorSet;
 
-	VkDescriptorSet globalDescriptor;
+	Buffer cameraBuffer;
+	Buffer objectBuffer;
+};
+
+struct GPUObjectData {
+	glm::mat4 modelMatrix;
+};
+
+struct GPUCameraData {
+	glm::mat4 view;
+	glm::mat4 projection;
+	glm::mat4 viewproj;
 };
 
 struct GPUSceneData {
@@ -55,17 +61,15 @@ struct GPUSceneData {
 struct DeletionQueue {
 	std::deque< std::function<void()> > deletors;
 
-	void push(std::function<void()>&& func)
-	{
+	void push(std::function<void()>&& func) {
 		deletors.push_back(func);
 	}
 
-	void flush()
-	{
+	void flush() {
 		for (auto it = deletors.rbegin(); it != deletors.rend(); it++)
 			(*it)();
 
-			deletors.clear();
+		deletors.clear();
 	}
 };
 
@@ -109,8 +113,9 @@ public:
 
 	VmaAllocator _allocator;
 
-	VkDescriptorSetLayout _globalSetLayout;
 	VkDescriptorPool _descriptorPool;
+	VkDescriptorSetLayout _globalSetLayout;
+	VkDescriptorSetLayout _objectSetLayout;
 
 	std::vector<RenderObject> _renderables;
 
