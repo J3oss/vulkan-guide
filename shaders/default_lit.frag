@@ -1,19 +1,29 @@
 #version 450
 
-layout (location = 0) in vec3 inColor;
+struct CameraData {
+  mat4 view;
+	mat4 proj;
+	mat4 viewproj;
+};
 
-layout (location = 0) out vec4 outFragColor;
-
-layout(set = 0, binding = 1) uniform  SceneData
-{
+struct SceneData{
   vec4 fogColor;
 	vec4 fogDistances;
 	vec4 ambientColor;
 	vec4 sunlightDirection;
 	vec4 sunlightColor;
-} sceneData;
+};
+
+layout (location = 0) in vec3 inColor;
+
+layout (location = 0) out vec4 outFragColor;
+
+layout (set = 0, binding = 0) uniform GlobalData {
+  CameraData camera;
+  SceneData  scene;
+} globalData;
 
 void main()
 {
-	outFragColor = vec4(inColor + sceneData.ambientColor.xyz,1.0f);
+	outFragColor = vec4(inColor + globalData.scene.ambientColor.xyz,1.0f);
 }
