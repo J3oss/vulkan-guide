@@ -61,6 +61,11 @@ struct GPUGlobalData {
 	GPUSceneData  scene;
 };
 
+struct UploadContext{
+	VkFence uploadFence;
+	VkCommandPool commandPool;
+};
+
 struct DeletionQueue {
 	std::deque< std::function<void()> > deletors;
 
@@ -110,6 +115,8 @@ public:
 
 	VkQueue _graphics_queue;
 	uint32_t _graphics_family_index;
+
+	UploadContext _uploadContext;
 
 	VkRenderPass _render_pass;
 	std::vector<VkFramebuffer> _framebuffers;
@@ -163,4 +170,6 @@ private:
 	Buffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
 	size_t pad_uniform_buffer_size(size_t originalSize);
+
+	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 };

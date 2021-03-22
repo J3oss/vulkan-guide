@@ -165,6 +165,13 @@ void VulkanEngine::init_swapchain()
 
 void VulkanEngine::init_commands()
 {
+	//upload context command pool
+	VkCommandPoolCreateInfo uploadCommandPoolInfo = vkinit::command_pool_create_info(_graphics_family_index);
+	VK_CHECK(vkCreateCommandPool(_logical_device, &uploadCommandPoolInfo, nullptr, &_uploadContext.commandPool));
+	_mainDeletionQueue.push([=]() {
+		vkDestroyCommandPool(_logical_device, _uploadContext.commandPool, nullptr);
+	});
+
 	//command pools one for each frame
 	VkCommandPoolCreateInfo _command_pool_info	= vkinit::command_pool_create_info(_graphics_family_index, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 	for (size_t i = 0; i < FRAME_OVERLAP; i++)
@@ -262,6 +269,16 @@ void VulkanEngine::init_framebuffers()
 
 void VulkanEngine::init_sync_structures()
 {
+	VkFenceCreateInfo uploadFenceCreateInfo = {
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+	};
+	VK_CHECK(
+		vkCreateFence(_logical_device, &uploadFenceCreateInfo, NULL, &_uploadContext.uploadFence)
+	);
+	_mainDeletionQueue.push([=]() {
+		vkDestroyFence(_logical_device, _uploadContext.uploadFence, NULL);
+	});
+
 	for (size_t i = 0; i < FRAME_OVERLAP; i++)
 	{
 		VkFenceCreateInfo fence_create_info = {
@@ -569,16 +586,42 @@ void VulkanEngine::load_meshes()
 
 void VulkanEngine::upload_mesh(Mesh& mesh)
 {
-	mesh.verticesBuffer = create_buffer(mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
+
+	Buffer stagingBuffer;
+	VkBufferCreateInfo stagingBufferCreateInfo = {};
+	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferCreateInfo.size  = bufferSize;
+	VmaAllocationCreateInfo vmaallocInfo = {};
+	vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+	vmaCreateBuffer(_allocator, &stagingBufferCreateInfo, &vmaallocInfo, &stagingBuffer.vkbuffer, &stagingBuffer.allocation, nullptr);
+
+	void* data;
+	vmaMapMemory(_allocator, stagingBuffer.allocation, &data);
+	memcpy(data, mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
+	vmaUnmapMemory(_allocator, stagingBuffer.allocation);
+
+	VkBufferCreateInfo bufferCreatInfo = {};
+	bufferCreatInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreatInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	bufferCreatInfo.size  = bufferSize;
+	vmaallocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	VK_CHECK(vmaCreateBuffer(_allocator, &bufferCreatInfo, &vmaallocInfo, &mesh.verticesBuffer.vkbuffer, &mesh.verticesBuffer.allocation, nullptr));
+
+	immediate_submit([=](VkCommandBuffer cmd) {
+		VkBufferCopy copy;
+		copy.dstOffset = 0;
+		copy.srcOffset = 0;
+		copy.size = bufferSize;
+		vkCmdCopyBuffer(cmd, stagingBuffer.vkbuffer, mesh.verticesBuffer.vkbuffer, 1, &copy);
+	});
 
 	_mainDeletionQueue.push([=]() {
-        vmaDestroyBuffer(_allocator, mesh.verticesBuffer.vkbuffer, mesh.verticesBuffer.allocation);
-    });
+	vmaDestroyBuffer(_allocator, mesh.verticesBuffer.vkbuffer, mesh.verticesBuffer.allocation);
+	});
 
-		void *data;
-		vmaMapMemory(_allocator, mesh.verticesBuffer.allocation, &data);
-		memcpy(data, mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
-		vmaUnmapMemory(_allocator, mesh.verticesBuffer.allocation);
+	vmaDestroyBuffer(_allocator, stagingBuffer.vkbuffer, stagingBuffer.allocation);
 }
 
 Material* VulkanEngine::create_material(VkPipeline pipeline, VkPipelineLayout layout, const std::string& name)
@@ -850,4 +893,36 @@ size_t VulkanEngine::pad_uniform_buffer_size(size_t originalSize)
 		alignedSize = (alignedSize + minUboAlignment - 1) & ~(minUboAlignment - 1);
 	}
 	return alignedSize;
+}
+
+void VulkanEngine::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function)
+{
+  VkCommandBuffer cmd;
+	VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::command_buffer_allocate_info(_uploadContext.commandPool, 1);
+	VK_CHECK(vkAllocateCommandBuffers(_logical_device, &cmdAllocInfo, &cmd));
+
+	VkCommandBufferBeginInfo cmdBeginInfo = {};
+	cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	cmdBeginInfo.pInheritanceInfo = NULL;
+	VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+
+	function(cmd);
+
+	VK_CHECK(vkEndCommandBuffer(cmd));
+
+	VkSubmitInfo submit = {};
+	submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit.commandBufferCount =1;
+	submit.pCommandBuffers = &cmd;
+
+	//submit command buffer to the queue and execute it.
+	// _uploadFence will now block until the graphic commands finish execution
+	VK_CHECK(vkQueueSubmit(_graphics_queue, 1, &submit, _uploadContext.uploadFence));
+
+	vkWaitForFences(_logical_device, 1, &_uploadContext.uploadFence, true, 9999999999);
+	vkResetFences(_logical_device, 1, &_uploadContext.uploadFence);
+
+    //clear the command pool. This will free the command buffer too
+	vkResetCommandPool(_logical_device, _uploadContext.commandPool, 0);
 }
