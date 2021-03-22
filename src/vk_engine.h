@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <vk_mem_alloc.h>
 
-
 struct MeshPushConstants {
 	glm::vec4 data;
 	glm::mat4 matrix;
@@ -36,7 +35,6 @@ struct FrameData {
 	VkDescriptorSet globalDescriptorSet;
 	VkDescriptorSet objectDescriptorSet;
 
-	Buffer cameraBuffer;
 	Buffer objectBuffer;
 };
 
@@ -56,6 +54,11 @@ struct GPUSceneData {
 	glm::vec4 ambientColor;
 	glm::vec4 sunlightDirection;
 	glm::vec4 sunlightColor;
+};
+
+struct GPUGlobalData {
+	GPUCameraData camera;
+	GPUSceneData  scene;
 };
 
 struct DeletionQueue {
@@ -122,19 +125,14 @@ public:
 	std::unordered_map <std::string,Material> _materials;
 	std::unordered_map <std::string,Mesh> _meshes;
 
-	GPUSceneData _sceneParameters;
-	Buffer _sceneParameterBuffer;
+	Buffer _globalBuffer;
 
-	//initializes everything in the engine
 	void init();
 
-	//shuts down the engine
 	void cleanup();
 
-	//draw loop
 	void draw();
 
-	//run main loop
 	void run();
 
 private:
