@@ -21,8 +21,10 @@ struct SceneData{
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec3 color;
+layout (location = 3) in vec2 texCoord;
 
 layout (location = 0) out vec3 outColor;
+layout (location = 1) out vec2 outTexCoord;
 
 layout (set = 0, binding = 0) uniform GlobalData {
   CameraData camera;
@@ -39,4 +41,5 @@ void main()
   mat4 transformMatrix = globalData.camera.viewproj * modelMatrix;
   gl_Position = transformMatrix * vec4(position,1.0f);
   outColor = color;
+  outTexCoord = texCoord;
 }
