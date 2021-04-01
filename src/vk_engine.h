@@ -15,6 +15,7 @@ struct MeshPushConstants {
 };
 
 struct Material {
+	VkDescriptorSet textureSet{VK_NULL_HANDLE};
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
 };
@@ -131,6 +132,7 @@ public:
 	VkDescriptorPool _descriptorPool;
 	VkDescriptorSetLayout _globalSetLayout;
 	VkDescriptorSetLayout _objectSetLayout;
+	VkDescriptorSetLayout _singleTextureSetLayout;
 
 	std::vector<RenderObject> _renderables;
 
@@ -149,7 +151,7 @@ public:
 
 	Buffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
-	
+
 	std::unordered_map<std::string, Texture> _loadedTextures;
 
 private:
