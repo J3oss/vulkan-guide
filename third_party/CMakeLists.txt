@@ -8,6 +8,9 @@ add_library(vkbootstrap STATIC)
 add_library(stb_image INTERFACE)
 add_library(tinyobjloader STATIC)
 
+
+#add_library(assimp SHARED IMPORTED)
+#set_target_properties( assimp PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/third_party/assimp/lib)
 #vkbootstrap
 target_sources(vkbootstrap PRIVATE
     vkbootstrap/VkBootstrap.h
