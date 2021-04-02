@@ -612,7 +612,8 @@ void VulkanEngine::load_meshes()
 	_meshes["triangle"] = _triangle_mesh;
 
 	Mesh _monkey_mesh;
-	_monkey_mesh.load_from_obj("../assets/monkey_smooth.obj");
+	//_monkey_mesh.load_from_obj("../assets/monkey_smooth.obj");
+	_monkey_mesh.assimp_load("../assets/ToyCar.glb");
 	upload_mesh(_monkey_mesh);
 	_meshes["monkey"] = _monkey_mesh;
 

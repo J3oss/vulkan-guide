@@ -125,5 +125,48 @@ bool Mesh::load_from_obj(const char* filename)
 		}
 	}
 
-    return true;
+  return true;
+}
+
+bool Mesh::assimp_load(const char* filename)
+{
+	Assimp::Importer importer;
+
+	const aiScene* scene = importer.ReadFile(filename,
+		aiProcess_CalcTangentSpace       |
+		aiProcess_Triangulate            |
+		aiProcess_JoinIdenticalVertices  |
+		aiProcess_SortByPType);
+
+	if(!scene)
+		return false;
+
+	for (size_t i = 0; i < scene->mNumMeshes; i++)
+	{
+		const aiMesh* mesh = scene->mMeshes[i];
+
+		const aiFace* face;
+		for (size_t j = 0; j < mesh->mNumFaces; j++)
+		{
+			face = &mesh->mFaces[j];
+
+			for (size_t z = 0; z < 3; z++)
+			{
+				Vertex new_vert;
+				new_vert.position.x = mesh->mVertices[ face->mIndices[z] ].x;
+				new_vert.position.y = mesh->mVertices[ face->mIndices[z] ].y;
+				new_vert.position.z = mesh->mVertices[ face->mIndices[z] ].z;
+
+				new_vert.normal.x = mesh->mNormals[ face->mIndices[z] ].x;
+				new_vert.normal.y = mesh->mNormals[ face->mIndices[z] ].y;
+				new_vert.normal.z = mesh->mNormals[ face->mIndices[z] ].z;
+
+				new_vert.color = new_vert.normal;
+
+				vertices.push_back(new_vert);
+			}
+		}
+	}
+
+	return true;
 }

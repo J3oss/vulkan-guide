@@ -4,6 +4,11 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+#include <assimp/Importer.hpp>      // C++ importer interface
+#include <assimp/DefaultLogger.hpp>      // C++ importer interface
+#include <assimp/scene.h>           // Output data structure
+#include <assimp/postprocess.h>     // Post processing flags
+
 struct VertexInputDescription {
   std::vector<VkVertexInputBindingDescription>   bindings;
   std::vector<VkVertexInputAttributeDescription> attributes;
@@ -26,4 +31,6 @@ struct Mesh {
   Buffer verticesBuffer;
 
   bool load_from_obj(const char* filename);
+
+  bool assimp_load(const char* filename);
 };
