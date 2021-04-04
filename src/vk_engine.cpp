@@ -618,7 +618,8 @@ void VulkanEngine::load_meshes()
 	_meshes["monkey"] = _monkey_mesh;
 
 	Mesh lostEmpire;
-	lostEmpire.load_from_obj("../assets/lost_empire.obj");
+	//lostEmpire.load_from_obj("../assets/lost_empire.obj");
+	lostEmpire.assimp_load("../assets/lost_empire.obj");
 	upload_mesh(lostEmpire);
 	_meshes["empire"] = lostEmpire;
 }
@@ -798,28 +799,6 @@ void VulkanEngine::init_scene()
 	imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	VkWriteDescriptorSet texture1 = vkinit::write_descriptor_image(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, texturedMat->textureSet, &imageBufferInfo, 0);
 	vkUpdateDescriptorSets(_logical_device, 1, &texture1, 0, nullptr);
-
-	RenderObject monkey;
-	monkey.mesh = get_mesh("monkey");
-	monkey.material = get_material("defaultmesh");
-	monkey.transform = glm::mat4{ 1.0f };
-	_renderables.push_back(monkey);
-
-	for (int x = -20; x <= 20; x++)
-	{
-		for (int y = -20; y <= 20; y++)
-		{
-			RenderObject triangle;
-			triangle.mesh = get_mesh("triangle");
-			triangle.material = get_material("defaultmesh");
-
-			glm::mat4 translation = glm::translate(glm::mat4{ 1.0 }, glm::vec3(x, 0, y));
-			glm::mat4 scale = glm::scale(glm::mat4{ 1.0 }, glm::vec3(0.2, 0.2, 0.2));
-			triangle.transform = translation * scale;
-
-			_renderables.push_back(triangle);
-		}
-	}
 
 	RenderObject map;
 	map.mesh = get_mesh("empire");

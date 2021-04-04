@@ -136,6 +136,7 @@ bool Mesh::assimp_load(const char* filename)
 		aiProcess_CalcTangentSpace       |
 		aiProcess_Triangulate            |
 		aiProcess_JoinIdenticalVertices  |
+		aiProcess_FlipUVs								 |
 		aiProcess_SortByPType);
 
 	if(!scene)
@@ -161,7 +162,8 @@ bool Mesh::assimp_load(const char* filename)
 				new_vert.normal.y = mesh->mNormals[ face->mIndices[z] ].y;
 				new_vert.normal.z = mesh->mNormals[ face->mIndices[z] ].z;
 
-				new_vert.color = new_vert.normal;
+				new_vert.uv.x = mesh->mTextureCoords[0][face->mIndices[z]].x;
+				new_vert.uv.y = mesh->mTextureCoords[0][face->mIndices[z]].y;
 
 				vertices.push_back(new_vert);
 			}
