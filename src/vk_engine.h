@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <vk_mem_alloc.h>
 
+#include <camera.h>
+
 struct MeshPushConstants {
 	glm::vec4 data;
 	glm::mat4 matrix;
@@ -140,6 +142,7 @@ public:
 	std::unordered_map <std::string,Mesh> _meshes;
 
 	Buffer _globalBuffer;
+	Camera camera;
 
 	void init();
 

@@ -700,10 +700,8 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd, RenderObject *first, int co
 {
 	int frameIndex = _frameNumber % FRAME_OVERLAP;
 
-	glm::vec3 camPos = { 0.f,-6.f,-10.f };
-	glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
-	glm::mat4 projection = glm::perspective(glm::radians(70.f), 1700.f / 900.f, 0.1f, 200.0f);
-	projection[1][1] *= -1;
+	glm::mat4 view = camera.get_view();
+	glm::mat4 projection = camera.get_projection();
 
 	GPUGlobalData globalData;
 	globalData.camera.projection = projection;
