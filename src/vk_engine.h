@@ -174,6 +174,7 @@ private:
 	void upload_mesh(Mesh& mesh);
 
 	void init_scene();
+	void init_imgui();
 
 	Material* create_material(VkPipeline pipeline, VkPipelineLayout layout,const std::string& name);
 	Material* get_material(const std::string& name);

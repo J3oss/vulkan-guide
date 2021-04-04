@@ -18,6 +18,11 @@
 #include <glm/gtx/transform.hpp>
 
 #include "vk_textures.h"
+#include <imgui.h>
+#include <imgui_impl_sdl.h>
+#include <imgui_impl_vulkan.h>
+
+#include <iterator>
 
 bool isColored = false;
 
@@ -50,6 +55,8 @@ void VulkanEngine::init()
 	load_images();
 
 	init_scene();
+
+	init_imgui();
 
 	_isInitialized = true;
 }
@@ -481,6 +488,8 @@ void VulkanEngine::cleanup()
 
 void VulkanEngine::draw()
 {
+	ImGui::Render();
+
 	VK_CHECK(
 						vkWaitForFences(_logical_device, 1, &get_current_frame(). _render_fence, true, 1000000000)
 					);
@@ -533,6 +542,8 @@ void VulkanEngine::draw()
 	//do stuff
 	//do stuff
 
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), get_current_frame()._mainCommandBuffer);
+
 	//finalize the render pass
 	vkCmdEndRenderPass(get_current_frame()._mainCommandBuffer);
 	VK_CHECK(vkEndCommandBuffer(get_current_frame()._mainCommandBuffer));
@@ -578,6 +589,7 @@ void VulkanEngine::run()
 		//Handle events on queue
 		while (SDL_PollEvent(&e) != 0)
 		{
+			ImGui_ImplSDL2_ProcessEvent(&e);
 			//close the window when user alt-f4s or clicks the X button
 			if (e.type == SDL_QUIT) bQuit = true;
 
@@ -591,6 +603,10 @@ void VulkanEngine::run()
 			}
 		}
 
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplSDL2_NewFrame(_window);
+
+		ImGui::NewFrame();
 		draw();
 	}
 }
@@ -1001,4 +1017,70 @@ void VulkanEngine::load_images()
 	vkCreateImageView(_logical_device, &imageinfo, nullptr, &lostEmpire.imageView);
 
 	_loadedTextures["empire_diffuse"] = lostEmpire;
+}
+
+void VulkanEngine::init_imgui()
+{
+	//1: create descriptor pool for IMGUI
+	// the size of the pool is very oversize, but it's copied from imgui demo itself.
+	VkDescriptorPoolSize pool_sizes[] =
+	{
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+	};
+
+	VkDescriptorPoolCreateInfo pool_info = {};
+	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	pool_info.maxSets = 1000;
+	pool_info.poolSizeCount = std::size(pool_sizes);
+	pool_info.pPoolSizes = pool_sizes;
+
+	VkDescriptorPool imguiPool;
+	VK_CHECK(vkCreateDescriptorPool(_logical_device, &pool_info, nullptr, &imguiPool));
+
+
+	// 2: initialize imgui library
+
+	//this initializes the core structures of imgui
+	ImGui::CreateContext();
+
+	//this initializes imgui for SDL
+	ImGui_ImplSDL2_InitForVulkan(_window);
+
+	//this initializes imgui for Vulkan
+	ImGui_ImplVulkan_InitInfo init_info = {};
+	init_info.Instance = _instance;
+	init_info.PhysicalDevice = _physical_device;
+	init_info.Device = _logical_device;
+	init_info.Queue = _graphics_queue;
+	init_info.DescriptorPool = imguiPool;
+	init_info.MinImageCount = 3;
+	init_info.ImageCount = 3;
+
+	ImGui_ImplVulkan_Init(&init_info, _render_pass);
+
+	//execute a gpu command to upload imgui font textures
+	immediate_submit([&](VkCommandBuffer cmd) {
+		ImGui_ImplVulkan_CreateFontsTexture(cmd);
+		});
+
+	//clear font textures from cpu data
+	ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+	//add the destroy the imgui created structures
+	_mainDeletionQueue.push([=]() {
+
+		vkDestroyDescriptorPool(_logical_device, imguiPool, nullptr);
+		ImGui_ImplVulkan_Shutdown();
+		});
 }
