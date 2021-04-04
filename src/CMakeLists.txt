@@ -12,9 +12,11 @@ add_executable(vulkan_guide
     vk_mesh.h
     vk_mesh.cpp
     vk_textures.h
-    vk_textures.cpp)
+    vk_textures.cpp
+    camera.h
+    camera.cpp)
 
-
+set_property(TARGET vulkan_guide PROPERTY CXX_STANDARD 17)
 set_property(TARGET vulkan_guide PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:vulkan_guide>")
 
 target_include_directories(vulkan_guide PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/third_party/assimp/include" )
