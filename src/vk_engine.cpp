@@ -607,6 +607,18 @@ void VulkanEngine::run()
 		ImGui_ImplSDL2_NewFrame(_window);
 
 		ImGui::NewFrame();
+
+		ImGui::Text("Camera %d", 123);
+
+		ImGui::InputFloat("X", &camera.pos.x, 1.0f, 1.0, "%.3f");
+		ImGui::InputFloat("Y", &camera.pos.y, 1.0f, 1.0, "%.3f");
+		ImGui::InputFloat("Z", &camera.pos.z, 1.0f, 1.0, "%.3f");
+
+		ImGui::InputFloat("fov y", &camera.fovy, 0.01, 1.0, "%.3f");
+		ImGui::InputFloat("aspect", &camera.aspect, 0.01, 1.0, "%.3f");
+		ImGui::InputFloat("near", &camera.near, 0.01f, 1.0, "%.3f");
+		ImGui::InputFloat("far", &camera.far, 1.0f, 1.0, "%.3f");
+
 		draw();
 	}
 }
