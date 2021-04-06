@@ -42,3 +42,10 @@ add_custom_target(
     Shaders
     DEPENDS ${SPIRV_BINARY_FILES}
     )
+
+##convert assets
+message(STATUS "Generating Assets")
+find_program(Asset-Baker Asset-Baker HINTS "${PROJECT_SOURCE_DIR}/bin")
+execute_process (
+    COMMAND bash -c "${Asset-Baker} ${CMAKE_CURRENT_SOURCE_DIR}/assets"
+)
