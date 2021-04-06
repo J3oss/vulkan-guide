@@ -1,5 +1,7 @@
 /build
 /bin
+/assets
+/third_party/assimp/lib/libassimp.so*
 /.ccls-cache
 compile_commands.json
 /shaders/*.spv
