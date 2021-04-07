@@ -21,6 +21,15 @@ namespace fs = std::filesystem;
 
 #define OUTDIR "assets_export"
 
+std::string calculate_assimp_mesh_name(const aiScene* scene, int meshIndex)
+{
+	char buffer[50];
+
+	snprintf(buffer, 50, "%d", meshIndex);
+	std::string matname = "MESH_" + std::string{ buffer } + "_"+ std::string{ scene->mMeshes[meshIndex]->mName.C_Str()};
+	return matname;
+}
+
 bool convert_image(const fs::path& input, const fs::path& output)
 {
 	int texWidth, texHeight, texChannels;
@@ -146,14 +155,17 @@ void extract_assimp_meshes(const aiScene* scene, const fs::path& input, const fs
 		assets::MeshInfo info;
 		info.vertexBuferSize = _vertices.size() * sizeof(VertexFormat);
 		info.indexBuferSize =  _indices.size() * sizeof(uint32_t);
-		//info.bounds = ;
+		info.bounds = assets::calculateBounds(_vertices.data(), _vertices.size());
 		info.vertexFormat = VertexFormatEnum;
 		info.indexSize = sizeof(uint32_t);
 		info.originalFile = input.string();
 
 		assets::AssetFile newFile = assets::pack_mesh(&info, (char*)_vertices.data(), (char*)_indices.data());
 
-		save_binaryfile(outputFolder.string().c_str(), newFile);
+		std::string meshname = calculate_assimp_mesh_name(scene, meshindex);
+		fs::path meshpath = outputFolder.parent_path() / (meshname + ".mesh");
+		std::cout << "/* message */" <<meshpath.string().c_str()<< '\n';
+		save_binaryfile(meshpath.string().c_str(), newFile);
 	}
 
 }
