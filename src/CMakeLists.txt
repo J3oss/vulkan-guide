@@ -13,7 +13,9 @@ add_executable(vulkan_guide main.cpp
                             vk_textures.h
                             vk_textures.cpp
                             camera.h
-                            camera.cpp)
+                            camera.cpp
+                            vk_descriptors.h
+                            vk_descriptors.cpp)
 
 set_property(TARGET vulkan_guide PROPERTY CXX_STANDARD 17)
 set_property(TARGET vulkan_guide PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:vulkan_guide>")
