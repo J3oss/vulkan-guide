@@ -625,29 +625,29 @@ void VulkanEngine::run()
 
 void VulkanEngine::load_meshes()
 {
-	Mesh _triangle_mesh;
-	_triangle_mesh.vertices.resize(3);
-
-	_triangle_mesh.vertices[0].position = { 1.f, 1.f, 0.0f };
-	_triangle_mesh.vertices[1].position = {-1.f, 1.f, 0.0f };
-	_triangle_mesh.vertices[2].position = { 0.f,-1.f, 0.0f };
-
-	_triangle_mesh.vertices[0].color = { 0.f, 1.f, 0.0f };
-	_triangle_mesh.vertices[1].color = { 0.f, 1.f, 0.0f };
-	_triangle_mesh.vertices[2].color = { 0.f, 1.f, 0.0f };
-
-	upload_mesh(_triangle_mesh);
-	_meshes["triangle"] = _triangle_mesh;
-
-	Mesh _monkey_mesh;
-	//_monkey_mesh.load_from_obj("../assets/monkey_smooth.obj");
-	_monkey_mesh.assimp_load("../assets/ToyCar.glb");
-	upload_mesh(_monkey_mesh);
-	_meshes["monkey"] = _monkey_mesh;
+	// Mesh _triangle_mesh;
+	// _triangle_mesh.vertices.resize(3);
+	//
+	// _triangle_mesh.vertices[0].position = { 1.f, 1.f, 0.0f };
+	// _triangle_mesh.vertices[1].position = {-1.f, 1.f, 0.0f };
+	// _triangle_mesh.vertices[2].position = { 0.f,-1.f, 0.0f };
+	//
+	// _triangle_mesh.vertices[0].color = { 0.f, 1.f, 0.0f };
+	// _triangle_mesh.vertices[1].color = { 0.f, 1.f, 0.0f };
+	// _triangle_mesh.vertices[2].color = { 0.f, 1.f, 0.0f };
+	//
+	// upload_mesh(_triangle_mesh);
+	// _meshes["triangle"] = _triangle_mesh;
+	//
+	// Mesh _monkey_mesh;
+	// //_monkey_mesh.load_from_obj("../assets/monkey_smooth.obj");
+	// _monkey_mesh.assimp_load("../assets/ToyCar.glb");
+	// upload_mesh(_monkey_mesh);
+	// _meshes["monkey"] = _monkey_mesh;
 
 	Mesh lostEmpire;
 	//lostEmpire.load_from_obj("../assets/lost_empire.obj");
-	lostEmpire.assimp_load("../assets/lost_empire.obj");
+	lostEmpire.load_mesh("../assets/assets_export/MESH_0_ToyCar.mesh");
 	upload_mesh(lostEmpire);
 	_meshes["empire"] = lostEmpire;
 }

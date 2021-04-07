@@ -3,6 +3,11 @@
 #include <iostream>
 #include <tiny_obj_loader.h>
 
+#include <asset_loader.h>
+#include <mesh_asset.h>
+
+#include <cstdint>
+
 VertexInputDescription Vertex::get_vertex_description()
 {
 	VertexInputDescription description;
@@ -46,128 +51,55 @@ VertexInputDescription Vertex::get_vertex_description()
 	return description;
 }
 
-bool Mesh::load_from_obj(const char* filename)
+bool Mesh::load_mesh(const char* filename)
 {
-	//attrib will contain the vertex arrays of the file
-	tinyobj::attrib_t attrib;
+	assets::AssetFile file;
+	assets::MeshInfo info;
 
-	//shapes contains the info for each separate object in the file
-	std::vector<tinyobj::shape_t> shapes;
-
-	//materials contains the information about the material of each shape, but we won't use it.
-  std::vector<tinyobj::material_t> materials;
-
-  //error and warning output from the load function
-	std::string warn;
-	std::string err;
-
-  //load the OBJ file
-	tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename, nullptr);
-
-	//make sure to output the warnings to the console, in case there are issues with the file
-	if (!warn.empty()) {
-		std::cout << "WARN: " << warn << std::endl;
-	}
-
-	//if we have any error, print it to the console, and break the mesh loading.
-  //This happens if the file can't be found or is malformed
-	if (!err.empty()) {
-		std::cerr << err << std::endl;
+	bool loaded = assets::load_binaryfile(filename, file);
+	if (!loaded)
+	{
+		std::cout << "Error when loading mesh " << filename << std::endl;;
 		return false;
 	}
 
-	// Loop over shapes
-	for (size_t s = 0; s < shapes.size(); s++)
+	info = read_mesh_info(&file);
+
+	//TODO when using index drawing change this
+	std::vector<char> vertexBuffer;
+	std::vector<char> indexBuffer;
+
+	vertexBuffer.resize(info.vertexBuferSize);
+	indexBuffer.resize(info.indexBuferSize);
+
+	assets::unpack_mesh(&info, file.binaryBlob.data(), file.binaryBlob.size(), vertexBuffer.data(), indexBuffer.data());
+
+	uint32_t indexCount  = indexBuffer.size() / sizeof(uint32_t);
+	uint32_t vertexCount = vertexBuffer.size() / sizeof(assets::Vertex_f32_PNCV);
+
+	uint32_t* unpacked_indices = (uint32_t*)indexBuffer.data();
+	vertices.resize(indexCount);
+	assets::Vertex_f32_PNCV* unpackedVertices = (assets::Vertex_f32_PNCV*)vertexBuffer.data();
+
+	for (int i = 0; i < indexCount; i++)
 	{
-		// Loop over faces(polygon)
-		size_t index_offset = 0;
+		Vertex new_vert;
+		new_vert.position.x = unpackedVertices[ unpacked_indices[i] ].position[0];
+		new_vert.position.y = unpackedVertices[ unpacked_indices[i] ].position[1];
+		new_vert.position.z = unpackedVertices[ unpacked_indices[i] ].position[2];
 
-		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
-		{
-			//hardcode loading to triangles
-			int fv = 3;
+		new_vert.normal.x = unpackedVertices[ unpacked_indices[i] ].normal[0];
+		new_vert.normal.y = unpackedVertices[ unpacked_indices[i] ].normal[1];
+		new_vert.normal.z = unpackedVertices[ unpacked_indices[i] ].normal[2];
 
-			// Loop over vertices in the face.
-			for (size_t v = 0; v < fv; v++)
-			{
-				// access to vertex
-				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+		new_vert.color.x = unpackedVertices[ unpacked_indices[i] ].color[0];
+		new_vert.color.y = unpackedVertices[ unpacked_indices[i] ].color[1];
+		new_vert.color.z = unpackedVertices[ unpacked_indices[i] ].color[2];
 
-        //vertex position
-				tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
-				tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
-				tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+		new_vert.uv.x = unpackedVertices[ unpacked_indices[i] ].uv[0];
+		new_vert.uv.y = unpackedVertices[ unpacked_indices[i] ].uv[1];
 
-				//vertex normal
-        tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
-				tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
-				tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
-
-        //copy it into our vertex
-				Vertex new_vert;
-				new_vert.position.x = vx;
-				new_vert.position.y = vy;
-				new_vert.position.z = vz;
-
-				new_vert.normal.x = nx;
-				new_vert.normal.y = ny;
-        new_vert.normal.z = nz;
-
-				tinyobj::real_t ux = attrib.texcoords[2 * idx.texcoord_index + 0];
-				tinyobj::real_t uy = attrib.texcoords[2 * idx.texcoord_index + 1];
-
-				new_vert.uv.x = ux;
-				new_vert.uv.y = 1-uy;
-
-				vertices.push_back(new_vert);
-			}
-			index_offset += fv;
-		}
-	}
-
-  return true;
-}
-
-bool Mesh::assimp_load(const char* filename)
-{
-	Assimp::Importer importer;
-
-	const aiScene* scene = importer.ReadFile(filename,
-		aiProcess_CalcTangentSpace       |
-		aiProcess_Triangulate            |
-		aiProcess_JoinIdenticalVertices  |
-		aiProcess_FlipUVs								 |
-		aiProcess_SortByPType);
-
-	if(!scene)
-		return false;
-
-	for (size_t i = 0; i < scene->mNumMeshes; i++)
-	{
-		const aiMesh* mesh = scene->mMeshes[i];
-
-		const aiFace* face;
-		for (size_t j = 0; j < mesh->mNumFaces; j++)
-		{
-			face = &mesh->mFaces[j];
-
-			for (size_t z = 0; z < 3; z++)
-			{
-				Vertex new_vert;
-				new_vert.position.x = mesh->mVertices[ face->mIndices[z] ].x;
-				new_vert.position.y = mesh->mVertices[ face->mIndices[z] ].y;
-				new_vert.position.z = mesh->mVertices[ face->mIndices[z] ].z;
-
-				new_vert.normal.x = mesh->mNormals[ face->mIndices[z] ].x;
-				new_vert.normal.y = mesh->mNormals[ face->mIndices[z] ].y;
-				new_vert.normal.z = mesh->mNormals[ face->mIndices[z] ].z;
-
-				new_vert.uv.x = mesh->mTextureCoords[0][face->mIndices[z]].x;
-				new_vert.uv.y = mesh->mTextureCoords[0][face->mIndices[z]].y;
-
-				vertices.push_back(new_vert);
-			}
-		}
+		vertices.push_back(new_vert);
 	}
 
 	return true;

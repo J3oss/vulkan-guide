@@ -30,7 +30,5 @@ struct Mesh {
 
   Buffer verticesBuffer;
 
-  bool load_from_obj(const char* filename);
-
-  bool assimp_load(const char* filename);
+  bool load_mesh(const char* filename);
 };
