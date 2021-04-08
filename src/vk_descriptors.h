@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <unordered_map>
 
 class DescriptorAllocator
 {
@@ -24,14 +25,13 @@ public:
     };
 };
 
-  VkDevice device;
-
   void init(VkDevice Device);
   void cleanup();
   bool allocate(VkDescriptorSet* set, VkDescriptorSetLayout layout);
   void reset();
 
 private:
+  VkDevice device;
   std::vector<VkDescriptorPool> usedPools;
   std::vector<VkDescriptorPool> freePools;
 
@@ -41,4 +41,30 @@ private:
   VkDescriptorPool currentPool{ VK_NULL_HANDLE };
 
   VkDescriptorPool createPool(VkDevice device, const PoolSizes& poolSizes, int count, VkDescriptorPoolCreateFlags flags);
+};
+
+class DescriptorLayoutCache
+{
+public:
+  struct DescriptorLayoutInfo
+  {
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    bool operator==(const DescriptorLayoutInfo& other) const;
+		size_t hash() const;
+  };
+
+  void init(VkDevice Device);
+  void cleanup();
+  VkDescriptorSetLayout create_descriptor_layout(VkDescriptorSetLayoutCreateInfo* info);
+
+private:
+  VkDevice device;
+  struct DescriptorLayoutHash
+  {
+			std::size_t operator()(const DescriptorLayoutInfo& k) const{
+				return k.hash();
+			}
+	};
+
+	std::unordered_map<DescriptorLayoutInfo, VkDescriptorSetLayout, DescriptorLayoutHash> layoutCache;
 };
