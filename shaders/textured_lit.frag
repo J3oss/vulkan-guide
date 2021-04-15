@@ -19,11 +19,6 @@ layout (location = 1) in vec2 inTexCoord;
 
 layout (location = 0) out vec4 outFragColor;
 
-layout (set = 0, binding = 0) uniform GlobalData {
-  CameraData camera;
-  SceneData  scene;
-} globalData;
-
 layout(set = 2, binding = 0) uniform sampler2D tex1;
 
 void main()

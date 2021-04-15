@@ -317,10 +317,6 @@ void VulkanEngine::init_sync_structures()
 
 void VulkanEngine::init_pipeline()
 {
-	VkShaderModule colored_frag_shader;
-	if (!load_shader_module("../shaders/default_lit.frag.spv", &colored_frag_shader))
-	std::cout << "error loading default lit shader" << std::endl;
-
 	VkShaderModule text_frag_shader;
 	if (!load_shader_module("../shaders/textured_lit.frag.spv", &text_frag_shader))
 	std::cout << "error loading textured_lit lit shader" << std::endl;
@@ -394,20 +390,6 @@ void VulkanEngine::init_pipeline()
 	pipelineBuilder.vertexInputState.pVertexAttributeDescriptions = vertexDescription.attributes.data();
 
 	//building pipelines
-	//mesh pipeline
-	VkPipeline _mesh_pipeline;
-	pipelineBuilder.pipelineLayout = _mesh_pipeline_layout;
-
-	pipelineBuilder.shaderStages.clear();
-	pipelineBuilder.shaderStages.push_back(
-		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, mesh_vert_shader)
-	);
-	pipelineBuilder.shaderStages.push_back(
-		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, colored_frag_shader)
-	);
-	_mesh_pipeline = pipelineBuilder.build_pipeline(_logical_device, _render_pass, &_mainDeletionQueue);
-	create_material(_mesh_pipeline, _mesh_pipeline_layout, "defaultmesh");
-
 	//textured pipeline
 	VkPipeline _textured_pipeline;
 	pipelineBuilder.pipelineLayout = _textured_pipeline_layout;
