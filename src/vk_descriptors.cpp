@@ -1,5 +1,7 @@
 #include <vk_descriptors.h>
 #include <algorithm>
+#include <iostream>
+
 
 void DescriptorAllocator::init(VkDevice Device)
 {
@@ -30,7 +32,7 @@ VkDescriptorPool DescriptorAllocator::createPool(VkDevice device, const PoolSize
   info.pPoolSizes = sizes.data();
 
   VkDescriptorPool descriptorPool;
-	vkCreateDescriptorPool(device, &info, nullptr, &descriptorPool);
+	VkResult r = vkCreateDescriptorPool(device, &info, nullptr, &descriptorPool);
 
 	return descriptorPool;
 }

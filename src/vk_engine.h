@@ -10,6 +10,7 @@
 #include <vk_mem_alloc.h>
 
 #include <camera.h>
+#include <vk_descriptors.h>
 
 struct MeshPushConstants {
 	glm::vec4 data;
@@ -130,6 +131,9 @@ public:
 	std::vector<VkFramebuffer> _framebuffers;
 
 	VmaAllocator _allocator;
+
+	DescriptorAllocator descriptoAllocator;
+	DescriptorLayoutCache descriptorLayoutCache;
 
 	VkDescriptorPool _descriptorPool;
 	VkDescriptorSetLayout _globalSetLayout;

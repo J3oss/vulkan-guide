@@ -861,6 +861,9 @@ Buffer VulkanEngine::create_buffer(size_t allocSize, VkBufferUsageFlags usage, V
 
 void VulkanEngine::init_descriptors()
 {
+	descriptoAllocator.init(_logical_device);
+	descriptorLayoutCache.init(_logical_device);
+
 	//set layout
 	{
 		//global set layout
@@ -874,7 +877,7 @@ void VulkanEngine::init_descriptors()
 			setInfo.flags = 0;
 			setInfo.pBindings = &globalBufferBinding;
 
-			vkCreateDescriptorSetLayout(_logical_device, &setInfo, nullptr, &_globalSetLayout);
+			_globalSetLayout = descriptorLayoutCache.create_descriptor_layout(&setInfo);
 		}
 
 		//object set layout
@@ -889,7 +892,7 @@ void VulkanEngine::init_descriptors()
 			objectSet.pBindings = bindings;
 			objectSet.bindingCount = 1;
 
-			vkCreateDescriptorSetLayout(_logical_device, &objectSet, nullptr, &_objectSetLayout);
+			_objectSetLayout = descriptorLayoutCache.create_descriptor_layout(&objectSet);
 		}
 
 		//texture set layout
@@ -904,7 +907,7 @@ void VulkanEngine::init_descriptors()
 			setinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			setinfo.pBindings = &textureBind;
 
-			vkCreateDescriptorSetLayout(_logical_device, &setinfo, nullptr, &_singleTextureSetLayout);
+			_singleTextureSetLayout = descriptorLayoutCache.create_descriptor_layout(&setinfo);
 		}
 	}
 
