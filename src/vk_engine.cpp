@@ -24,6 +24,8 @@
 
 #include <iterator>
 
+#include <vk_shader.h>
+
 bool isColored = false;
 
 void VulkanEngine::init()
@@ -317,50 +319,13 @@ void VulkanEngine::init_sync_structures()
 
 void VulkanEngine::init_pipeline()
 {
-	VkShaderModule text_frag_shader;
-	if (!load_shader_module("../shaders/textured_lit.frag.spv", &text_frag_shader))
+	ShaderModule text_frag_shader;
+	if (!load_shader_module(_logical_device, "../shaders/textured_lit.frag.spv", &text_frag_shader))
 	std::cout << "error loading textured_lit lit shader" << std::endl;
 
-	VkShaderModule mesh_vert_shader;
-	if (!load_shader_module("../shaders/tri_mesh.vert.spv", &mesh_vert_shader))
+	ShaderModule mesh_vert_shader;
+	if (!load_shader_module(_logical_device, "../shaders/tri_mesh.vert.spv", &mesh_vert_shader))
 	std::cout << "error loading mesh vertex shader" << std::endl;
-
-	//mesh pipeline layout
-	VkPipelineLayout _mesh_pipeline_layout;
-
-	VkPushConstantRange pc;
-	{
-		pc.offset = 0;
-		pc.size = sizeof(MeshPushConstants);
-		pc.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	}
-	VkPipelineLayoutCreateInfo mesh_pipeline_layout_info = vkinit::pipeline_layout_create_info();
-	mesh_pipeline_layout_info.pushConstantRangeCount = 1;
-	mesh_pipeline_layout_info.pPushConstantRanges = &pc;
-
-	VkDescriptorSetLayout setLayouts[] = { _globalSetLayout, _objectSetLayout };
-	mesh_pipeline_layout_info.setLayoutCount = 2;
-	mesh_pipeline_layout_info.pSetLayouts = setLayouts;
-
-	VK_CHECK(vkCreatePipelineLayout(_logical_device, &mesh_pipeline_layout_info, nullptr, &_mesh_pipeline_layout));
-	_mainDeletionQueue.push([=]()
-	{
-		vkDestroyPipelineLayout(_logical_device, _mesh_pipeline_layout, NULL);
-	});
-
-	//textured pipeline layout
-	VkPipelineLayout _textured_pipeline_layout;
-
-	VkPipelineLayoutCreateInfo textured_pipeline_layout_info = mesh_pipeline_layout_info;
-	VkDescriptorSetLayout texturedsetLayouts[] = { _globalSetLayout, _objectSetLayout, _singleTextureSetLayout };
-	textured_pipeline_layout_info.setLayoutCount = 3;
-	textured_pipeline_layout_info.pSetLayouts = texturedsetLayouts;
-
-	VK_CHECK(vkCreatePipelineLayout(_logical_device, &textured_pipeline_layout_info, nullptr, &_textured_pipeline_layout));
-	_mainDeletionQueue.push([=]()
-	{
-		vkDestroyPipelineLayout(_logical_device, _textured_pipeline_layout, NULL);
-	});
 
 	//building pipelines
 	PipelineBuilder pipelineBuilder;
@@ -392,68 +357,24 @@ void VulkanEngine::init_pipeline()
 	//building pipelines
 	//textured pipeline
 	VkPipeline _textured_pipeline;
-	pipelineBuilder.pipelineLayout = _textured_pipeline_layout;
+
+	ShaderEffect textured_effect;
+	textured_effect.add_stage(&text_frag_shader, VK_SHADER_STAGE_VERTEX_BIT);
+	textured_effect.add_stage(&mesh_vert_shader, VK_SHADER_STAGE_FRAGMENT_BIT);
+	ShaderEffect::ReflectionOverrides overrides[] = { {"globalData", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC} };
+	textured_effect.reflect_layout(this, overrides, 1);
+
+	pipelineBuilder.pipelineLayout = textured_effect.builtLayout;
 
 	pipelineBuilder.shaderStages.clear();
 	pipelineBuilder.shaderStages.push_back(
-		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, mesh_vert_shader)
+		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, text_frag_shader.shader)
 	);
 	pipelineBuilder.shaderStages.push_back(
-		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, text_frag_shader)
+		vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, mesh_vert_shader.shader)
 	);
 	_textured_pipeline = pipelineBuilder.build_pipeline(_logical_device, _render_pass, &_mainDeletionQueue);
-	create_material(_textured_pipeline, _textured_pipeline_layout, "texturedmesh");
-}
-
-bool VulkanEngine::load_shader_module(const char* filePath, VkShaderModule* outShaderModule)
-{
-	//open the file. With cursor at the end
-	std::ifstream file(filePath, std::ios::ate | std::ios::binary);
-
-	if (!file.is_open()) {
-		return false;
-	}
-
-	//find what the size of the file is by looking up the location of the cursor
-	//because the cursor is at the end, it gives the size directly in bytes
-	size_t fileSize = (size_t)file.tellg();
-
-	//spirv expects the buffer to be on uint32, so make sure to reserve an int vector big enough for the entire file
-	std::vector<uint32_t> buffer(fileSize / sizeof(uint32_t));
-
-	//put file cursor at beggining
-	file.seekg(0);
-
-	//load the entire file into the buffer
-	file.read((char*)buffer.data(), fileSize);
-
-	//now that the file is loaded into the buffer, we can close it
-	file.close();
-
-	//create a new shader module, using the buffer we loaded
-	VkShaderModuleCreateInfo createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.pNext = nullptr;
-
-	//codeSize has to be in bytes, so multply the ints in the buffer by size of int to know the real size of the buffer
-	createInfo.codeSize = buffer.size() * sizeof(uint32_t);
-	createInfo.pCode = buffer.data();
-
-	//check that the creation goes well.
-	VkShaderModule shaderModule;
-	if (vkCreateShaderModule(_logical_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-	{
-		return false;
-	}
-
-	*outShaderModule = shaderModule;
-
-	_mainDeletionQueue.push([=]()
-	{
-		vkDestroyShaderModule(_logical_device, shaderModule, NULL);
-	});
-
-	return true;
+	create_material(_textured_pipeline, textured_effect.builtLayout, "texturedmesh");
 }
 
 void VulkanEngine::cleanup()
@@ -478,7 +399,6 @@ void VulkanEngine::draw()
 	VK_CHECK(
 						vkResetFences(_logical_device, 1, &get_current_frame()._render_fence)
 					);
-
 	uint32_t frame_index = 0;
 	VK_CHECK(
 						vkAcquireNextImageKHR(_logical_device, _swapchain, 1000000000, get_current_frame()._present_semaphore, NULL, &frame_index)
@@ -769,7 +689,7 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd, RenderObject *first, int co
 
 		MeshPushConstants constants;
 		constants.matrix = object.transform;
-		vkCmdPushConstants(cmd, object.material->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+		//vkCmdPushConstants(cmd, object.material->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(MeshPushConstants), &constants);
 
 		if (object.mesh != lastMesh)
 		{
@@ -851,7 +771,7 @@ void VulkanEngine::init_descriptors()
 		//global set layout
 		{
 			VkDescriptorSetLayoutBinding globalBufferBinding =
-				vkinit::descriptorset_layout_binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+				vkinit::descriptorset_layout_binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 0);
 
 			VkDescriptorSetLayoutCreateInfo setInfo = {};
 			setInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

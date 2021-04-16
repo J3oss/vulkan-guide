@@ -172,7 +172,6 @@ private:
 	void init_sync_structures();
 
 	void init_pipeline();
-	bool load_shader_module(const char* filePath, VkShaderModule* outShaderModule);
 
 	void load_meshes();
 	void upload_mesh(Mesh& mesh);

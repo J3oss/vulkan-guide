@@ -16,12 +16,20 @@ struct ShaderStage
   VkShaderStageFlagBits stage;
 };
 
+class VulkanEngine;
+
 struct ShaderEffect
 {
 public:
+
+  struct ReflectionOverrides {
+  const char* name;
+  VkDescriptorType overridenType;
+};
+
   VkPipelineLayout builtLayout;
   void add_stage(ShaderModule *module, VkShaderStageFlagBits stage);
-  void reflect_layout(VkDevice device);
+  void reflect_layout(VulkanEngine* engine, ReflectionOverrides* overrides, int overrideCount);
 
 private:
   std::vector<ShaderStage> stages;

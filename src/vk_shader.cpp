@@ -59,147 +59,134 @@ bool load_shader_module(VkDevice device, const char* filePath, ShaderModule* out
 
 void ShaderEffect::add_stage(ShaderModule *module, VkShaderStageFlagBits stage)
 {
-  ShaderStage shader_stage = {};
-  shader_stage.shaderModule = module;
-  shader_stage.stage = stage;
-
-  stages.push_back(shader_stage);
+  ShaderStage newStage = { module,stage };
+	stages.push_back(newStage);
 }
 
-void ShaderEffect::reflect_layout(VkDevice device)
+void ShaderEffect::reflect_layout(VulkanEngine* engine, ReflectionOverrides* overrides, int overrideCount)
 {
-  std::vector<VkPushConstantRange> constant_ranges;
-  std::vector<DescriptorSetLayoutData> set_layouts;
+	std::vector<DescriptorSetLayoutData> set_layouts;
 
-  for(auto shaderStage: stages)
-  {
-    SpvReflectShaderModule spvmodule = {};
+	std::vector<VkPushConstantRange> constant_ranges;
 
-    SpvReflectResult result = spvReflectCreateShaderModule(shaderStage.shaderModule->code.size() * sizeof(uint32_t), shaderStage.shaderModule->code.data(), &spvmodule);
-    if (result != SPV_REFLECT_RESULT_SUCCESS)
+	for (auto& s : stages) {
+		SpvReflectShaderModule spvmodule;
+		SpvReflectResult result = spvReflectCreateShaderModule(s.shaderModule->code.size() * sizeof(uint32_t), s.shaderModule->code.data(), &spvmodule);
+
+		uint32_t count = 0;
+		result = spvReflectEnumerateDescriptorSets(&spvmodule, &count, NULL);
+		assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+		std::vector<SpvReflectDescriptorSet*> sets(count);
+		result = spvReflectEnumerateDescriptorSets(&spvmodule, &count, sets.data());
+		assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+		for (size_t i_set = 0; i_set < sets.size(); ++i_set)
     {
-      std::cout << "error from spv" << '\n';
-      return;
-    }
+			const SpvReflectDescriptorSet& refl_set = *(sets[i_set]);
 
-    //descriptor sets
-    uint32_t count = 0;
-    result = spvReflectEnumerateDescriptorSets(&spvmodule, &count, NULL);
-    if (result != SPV_REFLECT_RESULT_SUCCESS)
-    {
-      std::cout << "error from spv" << '\n';
-      return;
-    }
+			DescriptorSetLayoutData layout = {};// = set_layouts[i_set];
 
-    std::vector<SpvReflectDescriptorSet*> spvSets(count);
-    result = spvReflectEnumerateDescriptorSets(&spvmodule, &count, spvSets.data());
-    if (result != SPV_REFLECT_RESULT_SUCCESS)
-    {
-      std::cout << "error from spv" << '\n';
-      return;
-    }
+			layout.bindings.resize(refl_set.binding_count);
+			for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding) {
+				const SpvReflectDescriptorBinding& refl_binding = *(refl_set.bindings[i_binding]);
+				VkDescriptorSetLayoutBinding& layout_binding = layout.bindings[i_binding];
+				layout_binding.binding = refl_binding.binding;
+				layout_binding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
 
-    for (size_t i_set = 0; i_set < count; ++i_set)
-    {
-        const SpvReflectDescriptorSet& refl_set = *(spvSets[i_set]);
-        DescriptorSetLayoutData layout = {};
+				for (int ov = 0; ov < overrideCount; ov++)
+				{
+					if (strcmp(refl_binding.name, overrides[ov].name) == 0) {
+						layout_binding.descriptorType = overrides[ov].overridenType;
+					}
+				}
 
-        layout.bindings.resize(refl_set.binding_count);
-        for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding)
-        {
-          const SpvReflectDescriptorBinding& refl_binding = *(refl_set.bindings[i_binding]);
-          VkDescriptorSetLayoutBinding& layout_binding = layout.bindings[i_binding];
+				layout_binding.descriptorCount = 1;
+				for (uint32_t i_dim = 0; i_dim < refl_binding.array.dims_count; ++i_dim) {
+					layout_binding.descriptorCount *= refl_binding.array.dims[i_dim];
+				}
+				layout_binding.stageFlags = static_cast<VkShaderStageFlagBits>(spvmodule.shader_stage);
+			}
+			layout.set_number = refl_set.set;
+			layout.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layout.create_info.bindingCount = refl_set.binding_count;
+			layout.create_info.pBindings = layout.bindings.data();
 
-          layout_binding.binding = refl_binding.binding;
-          layout_binding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
-          layout_binding.descriptorCount = 1;
-          for (uint32_t i_dim = 0; i_dim < refl_binding.array.dims_count; ++i_dim)
-          {
-            layout_binding.descriptorCount *= refl_binding.array.dims[i_dim];
-          }
-          layout_binding.stageFlags = static_cast<VkShaderStageFlagBits>(spvmodule.shader_stage);
-        }
+			set_layouts.push_back(layout);
+		}
 
-        layout.set_number = refl_set.set;
-        layout.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout.create_info.bindingCount = refl_set.binding_count;
-        layout.create_info.pBindings = layout.bindings.data();
+		//pushconstants
 
-        set_layouts.push_back(layout);
-    }
-
-    //push constants
-    result = spvReflectEnumeratePushConstants(&spvmodule, &count, nullptr);
-    if (result != SPV_REFLECT_RESULT_SUCCESS)
-    {
-      std::cout << "error from spv" << '\n';
-      return;
-    }
+		result = spvReflectEnumeratePushConstants(&spvmodule, &count, NULL);
+		assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
 		std::vector<SpvReflectBlockVariable*> pconstants(count);
 		result = spvReflectEnumeratePushConstants(&spvmodule, &count, pconstants.data());
-    if (result != SPV_REFLECT_RESULT_SUCCESS)
-    {
-      std::cout << "error from spv" << '\n';
-      return;
-    }
+		assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-		if (count > 0)
-    {
+		if (count > 0) {
 			VkPushConstantRange pcs{};
 			pcs.offset = pconstants[0]->offset;
 			pcs.size = pconstants[0]->size;
-			pcs.stageFlags = shaderStage.stage;
+			pcs.stageFlags = s.stage;
 
 			constant_ranges.push_back(pcs);
 		}
-  }
+	}
 
-  std::array<DescriptorSetLayoutData,4> merged_layouts;
+	std::array<DescriptorSetLayoutData,4> merged_layouts;
 
-  for (int i = 0; i < 4; i++)
-  {
-    DescriptorSetLayoutData &ly = merged_layouts[i];
-    ly.set_number = i;
-    ly.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	for (int i = 0; i < 4; i++) {
 
-    for (auto& s : set_layouts)
-    {
-      if (s.set_number == i)
-      {
-        for (auto& b : s.bindings)
-        {
-          ly.bindings.push_back(b);
-        }
-      }
-    }
+		DescriptorSetLayoutData &ly = merged_layouts[i];
 
-    ly.create_info.bindingCount = ly.bindings.size();
-    ly.create_info.pBindings = ly.bindings.data();
-    ly.create_info.flags = 0;
-    ly.create_info.pNext = 0;
+		ly.set_number = i;
 
-    if (ly.create_info.bindingCount > 0)
-    {
-      vkCreateDescriptorSetLayout(device, &ly.create_info, nullptr, &setLayouts[i]);
-    }
-    else
-    {
-      setLayouts[i] = VK_NULL_HANDLE;
-    }
-  }
+		ly.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipeline_layout_create_info();
+		for (auto& s : set_layouts) {
+			if (s.set_number == i) {
+				for (auto& b : s.bindings)
+				{
+					ly.bindings.push_back(b);
+				}
+			}
+		}
 
-  VkPushConstantRange push_constant;
-  push_constant.offset = 0;
-  push_constant.size = sizeof(MeshPushConstants);
-  push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		ly.create_info.bindingCount = ly.bindings.size();
+		ly.create_info.pBindings = ly.bindings.data();
+		ly.create_info.flags = 0;
+		ly.create_info.pNext = 0;
 
-  pipelineLayoutInfo.pPushConstantRanges = constant_ranges.data();
-  pipelineLayoutInfo.pushConstantRangeCount = constant_ranges.size();
-	pipelineLayoutInfo.setLayoutCount = 2;
-	pipelineLayoutInfo.pSetLayouts = setLayouts.data();
+		if (ly.create_info.bindingCount > 0) {
 
-	vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &builtLayout);
+
+			vkCreateDescriptorSetLayout(engine->_logical_device, &ly.create_info, nullptr, &setLayouts[i]);
+		}
+		else {
+			setLayouts[i] = VK_NULL_HANDLE;
+		}
+	}
+
+	//we start from just the default empty pipeline layout info
+	VkPipelineLayoutCreateInfo mesh_pipeline_layout_info = vkinit::pipeline_layout_create_info();
+
+	//setup push constants
+	// VkPushConstantRange push_constant;
+	// //offset 0
+	// push_constant.offset = 0;
+	// //size of a MeshPushConstant struct
+	// push_constant.size = sizeof(MeshPushConstants);
+	// //for the vertex shader
+	// push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	// mesh_pipeline_layout_info.pPushConstantRanges = constant_ranges.data();
+	// mesh_pipeline_layout_info.pushConstantRangeCount = constant_ranges.size();
+
+	mesh_pipeline_layout_info.setLayoutCount = 3;
+	mesh_pipeline_layout_info.pSetLayouts = setLayouts.data();
+
+	VkPipelineLayout meshPipLayout;
+	vkCreatePipelineLayout(engine->_logical_device, &mesh_pipeline_layout_info, nullptr, &builtLayout);
+
 }
