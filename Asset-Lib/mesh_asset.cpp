@@ -2,6 +2,8 @@
 #include "json.hpp"
 #include "lz4.h"
 
+#include <stdio.h>
+
 assets::VertexFormat parse_format(const char* f)
 {
 	if (strcmp(f, "PNCV_F32") == 0)
@@ -25,12 +27,14 @@ assets::MeshInfo assets::read_mesh_info(AssetFile* file)
 	nlohmann::json metadata = nlohmann::json::parse(file->json);
 
 	info.vertexBuferSize = metadata["vertex_buffer_size"];
-	info.indexBuferSize = metadata["index_buffer_size"];
-	info.indexSize = (uint8_t) metadata["index_size"];
-	info.originalFile = metadata["original_file"];
+	info.vertexCount     = metadata["vertex_count"];
+	info.faceCount       = metadata["face_count"];
 
-	std::string compressionString = metadata["compression"];
-	info.compressionMode = parse_compression(compressionString.c_str());
+	info.indexBuferSize = metadata["index_buffer_size"];
+	info.indexCount     = metadata["index_count"];
+	info.indexSize = (uint8_t) metadata["index_size"];
+
+	info.originalFile = metadata["original_file"];
 
 	std::vector<float> boundsData;
 	boundsData.reserve(7);
@@ -68,15 +72,9 @@ void assets::unpack_mesh(MeshInfo* info, const char* sourcebuffer, size_t source
 
 assets::AssetFile assets::pack_mesh(MeshInfo* info, char* vertexData, char* indexData)
 {
-  AssetFile file;
-	file.type[0] = 'M';
-	file.type[1] = 'E';
-	file.type[2] = 'S';
-	file.type[3] = 'H';
-
-	file.version = 1;
-
+	AssetFile file;
 	nlohmann::json metadata;
+
 	if (info->vertexFormat == VertexFormat::P32N8C8V16) {
 		metadata["vertex_format"] = "P32N8C8V16";
 	}
@@ -84,9 +82,15 @@ assets::AssetFile assets::pack_mesh(MeshInfo* info, char* vertexData, char* inde
 	{
 		metadata["vertex_format"] = "PNCV_F32";
 	}
+
 	metadata["vertex_buffer_size"] = info->vertexBuferSize;
+	metadata["vertex_count"] = info->vertexCount;
+	metadata["face_count"] = info->faceCount;
+
 	metadata["index_buffer_size"] = info->indexBuferSize;
-	metadata["index_size"] = info->indexSize;
+	metadata["index_count"] = info->indexCount;
+	metadata["index_size"]  = info->indexSize;
+
 	metadata["original_file"] = info->originalFile;
 
 	std::vector<float> boundsData;
@@ -106,25 +110,31 @@ assets::AssetFile assets::pack_mesh(MeshInfo* info, char* vertexData, char* inde
 
 	size_t fullsize = info->vertexBuferSize + info->indexBuferSize;
 
-	std::vector<char> merged_buffer;
-	merged_buffer.resize(fullsize);
+	// std::vector<char> merged_buffer;
+	// merged_buffer.resize(fullsize);
+	//
+	// //copy vertex buffer
+	// memcpy(merged_buffer.data(), vertexData, info->vertexBuferSize);
+	//
+	// //copy index buffer
+	// memcpy(merged_buffer.data() + info->vertexBuferSize, indexData, info->indexBuferSize);
 
+	file.binaryBlob.resize(fullsize);
 	//copy vertex buffer
-	memcpy(merged_buffer.data(), vertexData, info->vertexBuferSize);
+	memcpy(file.binaryBlob.data(), vertexData, info->vertexBuferSize);
 
 	//copy index buffer
-	memcpy(merged_buffer.data() + info->vertexBuferSize, indexData, info->indexBuferSize);
-
+	memcpy(file.binaryBlob.data() + info->vertexBuferSize, indexData, info->indexBuferSize);
 
 	//compress buffer and copy it into the file struct
-	size_t compressStaging = LZ4_compressBound(static_cast<int>(fullsize));
+	// size_t compressStaging = LZ4_compressBound(static_cast<int>(fullsize));
 
-	file.binaryBlob.resize(compressStaging);
+	// file.binaryBlob.resize(compressStaging);
 
-	int compressedSize = LZ4_compress_default(merged_buffer.data(), file.binaryBlob.data(), static_cast<int>(merged_buffer.size()), static_cast<int>(compressStaging));
-	file.binaryBlob.resize(compressedSize);
+	// int compressedSize = LZ4_compress_default(merged_buffer.data(), file.binaryBlob.data(), static_cast<int>(merged_buffer.size()), static_cast<int>(compressStaging));
+	// file.binaryBlob.resize(compressedSize);
 
-	metadata["compression"] = "LZ4";
+	metadata["compression"] = "None";
 
 	file.json = metadata.dump();
 

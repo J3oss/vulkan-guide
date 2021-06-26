@@ -2,37 +2,21 @@
 
 #include <fstream>
 
-assets::CompressionMode assets::parse_compression(const char* f)
-{
-	if (strcmp(f, "LZ4") == 0)
-		return assets::CompressionMode::LZ4;
-
-	else
-		return assets::CompressionMode::None;
-}
-
 bool assets::save_binaryfile(const char* path, const AssetFile& file)
 {
   std::ofstream outfile;
   outfile.open(path, std::ios::binary | std::ios::out);
 
-  //type
-  outfile.write(file.type, 4);
-
-  //version
-	uint32_t version = file.version;
-	outfile.write((const char*)&version, sizeof(uint32_t));
-
 	//json lenght
-	uint32_t jsonlength = file.json.size();
+	uint32_t jsonlength = file.json.size() + 1 ;
 	outfile.write((const char*)&jsonlength, sizeof(uint32_t));
-
+  printf("%d\n", jsonlength);
 	//blob lenght
 	uint32_t bloblength = file.binaryBlob.size();
 	outfile.write((const char*)&bloblength, sizeof(uint32_t));
 
 	//json stream
-	outfile.write(file.json.data(), jsonlength);
+	outfile.write(file.json.c_str(), jsonlength);
 
 	//blob data
 	outfile.write(file.binaryBlob.data(), bloblength);
@@ -51,12 +35,6 @@ bool assets::load_binaryfile(const char* path, AssetFile& outputFile)
     return false;
 
   infile.seekg(0);
-
-  //type
-  infile.read(outputFile.type, 4);
-
-  //version
-  infile.read((char*) &outputFile.version, sizeof(uint32_t));
 
   //json lenght
 	uint32_t jsonlength = 0;

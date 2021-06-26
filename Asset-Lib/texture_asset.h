@@ -14,7 +14,6 @@ namespace assets
   {
 		uint64_t textureSize;
 		TextureFormat textureFormat;
-		CompressionMode compressionMode;
 		uint32_t pixelsize[3];
 		std::string originalFile;
 	};

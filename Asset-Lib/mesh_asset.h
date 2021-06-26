@@ -6,18 +6,18 @@ namespace assets
 {
 	struct Vertex_f32_PNCV
   {
-		float position[3];
-		float normal[3];
-		float color[3];
-		float uv[2];
+		float position[4];
+		float normal[4];
+		float color[4];
+		float uv[4];
 	};
 
 	struct Vertex_P32N8C8V16
   {
-		float position[3];
-		uint8_t normal[3];
-		uint8_t color[3];
-		float uv[2];
+		float position[4];
+		float normal[4];
+		float color[4];
+		float uv[4];
 	};
 
 	enum class VertexFormat : uint32_t
@@ -36,12 +36,18 @@ namespace assets
 
 	struct MeshInfo
   {
-		uint64_t vertexBuferSize;
-		uint64_t indexBuferSize;
-		MeshBounds bounds;
-		VertexFormat vertexFormat;
+		uint32_t vertexBuferSize;
+		uint32_t vertexCount;
+		uint32_t faceCount;
+
+		uint32_t indexBuferSize;
+		uint32_t indexCount;
 		char indexSize;
-		CompressionMode compressionMode;
+
+		MeshBounds bounds;
+
+		VertexFormat vertexFormat;
+
 		std::string originalFile;
 	};
 

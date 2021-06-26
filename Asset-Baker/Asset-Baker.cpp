@@ -82,23 +82,29 @@ void extract_assimp_meshes(const aiScene* scene, const fs::path& input, const fs
 		{
 			VertexFormat vert;
 
-			vert.position[0] = mesh->mVertices[v].x;
-			vert.position[1] = mesh->mVertices[v].y;
-			vert.position[2] = mesh->mVertices[v].z;
+			vert.position[0] = mesh->mVertices[v][0];
+			vert.position[1] = mesh->mVertices[v][1];
+			vert.position[2] = mesh->mVertices[v][2];
+			vert.position[3] = 0;
 
 			vert.normal[0] = mesh->mNormals[v].x;
 			vert.normal[1] = mesh->mNormals[v].y;
 			vert.normal[2] = mesh->mNormals[v].z;
+			vert.normal[3] = 0;
 
 			if (mesh->GetNumUVChannels() >= 1)
 			{
 				vert.uv[0] = mesh->mTextureCoords[0][v].x;
 				vert.uv[1] = mesh->mTextureCoords[0][v].y;
+				vert.uv[2] = 0;
+				vert.uv[3] = 0;
 			}
 			else
 			{
 				vert.uv[0] = 0;
 				vert.uv[1] = 0;
+				vert.uv[2] = 0;
+				vert.uv[3] = 0;
 			}
 
 			if (mesh->HasVertexColors(0))
@@ -106,15 +112,18 @@ void extract_assimp_meshes(const aiScene* scene, const fs::path& input, const fs
 				vert.color[0] = mesh->mColors[0][v].r;
 				vert.color[1] = mesh->mColors[0][v].g;
 				vert.color[2] = mesh->mColors[0][v].b;
+				vert.color[3] = 0;
 			}
 			else
 			{
 				vert.color[0] = 1;
 				vert.color[1] = 1;
 				vert.color[2] = 1;
+				vert.color[3] = 0;
 			}
 
 			_vertices[v] = vert;
+			printf("vert: %f %f %f %f\n", vert.position[0], vert.position[1], vert.position[2], vert.position[3]);
 		}
 
 		_indices.resize(mesh->mNumFaces * 3);
@@ -154,7 +163,12 @@ void extract_assimp_meshes(const aiScene* scene, const fs::path& input, const fs
 
 		assets::MeshInfo info;
 		info.vertexBuferSize = _vertices.size() * sizeof(VertexFormat);
+		info.vertexCount = mesh->mNumVertices;
+		info.faceCount = mesh->mNumFaces;
+
 		info.indexBuferSize =  _indices.size() * sizeof(uint32_t);
+		info.indexCount = mesh->mNumFaces * 3;
+
 		info.bounds = assets::calculateBounds(_vertices.data(), _vertices.size());
 		info.vertexFormat = VertexFormatEnum;
 		info.indexSize = sizeof(uint32_t);
@@ -167,7 +181,6 @@ void extract_assimp_meshes(const aiScene* scene, const fs::path& input, const fs
 		std::cout << "/* message */" <<meshpath.string().c_str()<< '\n';
 		save_binaryfile(meshpath.string().c_str(), newFile);
 	}
-
 }
 
 int main(int argc, char const *argv[])

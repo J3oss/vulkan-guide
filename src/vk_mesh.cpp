@@ -97,7 +97,7 @@ bool Mesh::load_mesh(const char* filename)
 		new_vert.color.z = unpackedVertices[ unpacked_indices[i] ].color[2];
 
 		new_vert.uv.x = unpackedVertices[ unpacked_indices[i] ].uv[0];
-		new_vert.uv.y = unpackedVertices[ unpacked_indices[i] ].uv[1];
+		new_vert.uv.y = unpackedVertices[ unpacked_indices[i] ].uv[0];
 
 		vertices.push_back(new_vert);
 	}
